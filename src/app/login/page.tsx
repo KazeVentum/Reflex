@@ -38,7 +38,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm flex flex-col gap-6">
         <div className="text-center">
           <h1 className="font-[family-name:var(--font-fraunces)] text-2xl text-[var(--fg)] mb-2">
-            Reflexiones
+            Reflex
           </h1>
           <p className="text-sm text-[var(--muted)]">
             {mode === "login" ? "Ingresá tus credenciales" : "Creá tu cuenta personal"}

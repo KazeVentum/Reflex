@@ -17,22 +17,22 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  applicationName: "Reflexiones",
-  title: { default: "Reflexiones", template: "%s — Reflexiones" },
+  applicationName: "Reflex",
+  title: { default: "Reflex", template: "%s — Reflex" },
   description: "Biblioteca personal de reflexiones sobre libros",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Reflexiones",
+    title: "Reflex",
   },
   formatDetection: { telephone: false },
 };
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f5f0e8" },
-    { media: "(prefers-color-scheme: dark)", color: "#000000" },
+    { media: "(prefers-color-scheme: light)", color: "#fdf5f7" },
+    { media: "(prefers-color-scheme: dark)", color: "#140e12" },
   ],
   minimumScale: 1,
   initialScale: 1,
