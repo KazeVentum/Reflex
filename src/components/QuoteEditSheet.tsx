@@ -11,7 +11,7 @@ interface QuoteEditSheetProps {
   onClose: () => void;
   onSave: (
     id: string,
-    updates: Partial<Pick<Quote, "book_id" | "page_number" | "quote_text" | "notes" | "tags">>
+    updates: Partial<Pick<Quote, "book_id" | "page_number" | "quote_text" | "notes" | "tags" | "is_public">>
   ) => Promise<boolean>;
 }
 
@@ -24,6 +24,7 @@ export function QuoteEditSheet({ quote, onClose, onSave }: QuoteEditSheetProps) 
   const [quoteText, setQuoteText] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
+  const [isPublic, setIsPublic] = useState(false);
   const [saving, setSaving] = useState(false);
   const [kbOffset, setKbOffset] = useState(0);
   const isDesktop = useIsDesktop();
@@ -35,6 +36,7 @@ export function QuoteEditSheet({ quote, onClose, onSave }: QuoteEditSheetProps) 
       setQuoteText(quote.quote_text);
       setTags(quote.tags);
       setNotes(quote.notes ?? "");
+      setIsPublic(quote.is_public);
     }
   }, [quote]);
 
@@ -65,6 +67,7 @@ export function QuoteEditSheet({ quote, onClose, onSave }: QuoteEditSheetProps) 
       quote_text: quoteText.trim(),
       tags,
       notes: notes.trim() || null,
+      is_public: isPublic,
     });
     if (ok) onClose();
     setSaving(false);
@@ -176,6 +179,36 @@ export function QuoteEditSheet({ quote, onClose, onSave }: QuoteEditSheetProps) 
                     placeholder="¿Qué te generó esta cita?"
                     className={`${inputClass} resize-none leading-relaxed`}
                   />
+                </div>
+
+                {/* Hacer pública */}
+                <div className="flex items-center justify-between gap-3">
+                  <span className="flex flex-col">
+                    <span className="text-sm text-[var(--fg)]">Hacer pública</span>
+                    <span className="text-xs text-[var(--muted)]">
+                      Visible en el feed si estás destacado
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={isPublic}
+                    aria-label="Hacer pública"
+                    onClick={() => setIsPublic((v) => !v)}
+                    className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors ${
+                      isPublic
+                        ? "bg-[var(--accent)] border-[var(--accent)]"
+                        : "bg-[var(--surface)] border-[var(--border)] hover:border-[var(--accent)]"
+                    }`}
+                  >
+                    <span
+                      className="absolute top-1 left-1 h-4 w-4 rounded-full transition-transform"
+                      style={{
+                        transform: isPublic ? "translateX(20px)" : "none",
+                        backgroundColor: isPublic ? "var(--bg)" : "var(--muted)",
+                      }}
+                    />
+                  </button>
                 </div>
 
                 {/* Botones */}

@@ -27,6 +27,8 @@ Aplicar en orden sobre una base ya existente:
 | `migration_add_quotes.sql` | Crea tabla `quotes` |
 | `migration_reading_tracker.sql` | Agrega `total_pages` y `current_page` a `books`, crea tabla `reading_logs` y función `upsert_reading_log` |
 | `migration_add_profiles_and_roles.sql` | Crea tabla `profiles` (roles `is_admin`/`is_featured`), trigger `handle_new_user` para auto-crearla en el signup + backfill, y una FK directa `reflections`/`quotes` → `profiles` |
+| `migration_add_public_content.sql` | Agrega `is_public` a `reflections`/`quotes` y las policies de lectura pública (para featured + is_public) sobre `reflections`, `quotes` y `books` |
+| `migration_add_public_content_storage.sql` | Policy de Storage que permite reproducir el audio de reflexiones públicas de usuarios destacados |
 
 Después de aplicar `migration_add_profiles_and_roles.sql`, otorgate admin a mano (no hay UI para el primer admin):
 ```sql
@@ -70,6 +72,7 @@ Se crea automáticamente vía trigger `handle_new_user` en `auth.users` (`AFTER 
 | `duration_seconds` | INTEGER | Duración del audio |
 | `tags` | TEXT[] | Array de tags |
 | `notes` | TEXT | Notas escritas (opcional) |
+| `is_public` | BOOLEAN | Visible en el feed si el autor es `is_featured` (default false) |
 | `created_at` | TIMESTAMPTZ | Fecha de creación |
 
 ### `quotes`
@@ -82,6 +85,7 @@ Se crea automáticamente vía trigger `handle_new_user` en `auth.users` (`AFTER 
 | `quote_text` | TEXT | Texto de la cita |
 | `notes` | TEXT | Interpretación personal (opcional) |
 | `tags` | TEXT[] | Array de tags |
+| `is_public` | BOOLEAN | Visible en el feed si el autor es `is_featured` (default false) |
 | `created_at` | TIMESTAMPTZ | Fecha de creación |
 
 ### `reading_logs`
@@ -108,9 +112,9 @@ Bucket `reflections` (privado):
 - Max size: 50 MB
 - Tipos permitidos: `audio/webm`, `audio/ogg`, `audio/mp4`, `audio/mpeg`
 - Path format: `{user_id}/{reflectionId}.{ext}`
-- RLS: cada usuario solo accede a su carpeta
+- RLS: cada usuario accede a su carpeta, más `public_featured_audio_select` para reflexiones públicas de usuarios destacados
 
 ## Notas
 
-- RLS habilitado en todas las tablas — datos completamente aislados por usuario
+- RLS habilitado en todas las tablas. Aislamiento por usuario por defecto, con una excepción explícita: contenido marcado `is_public` de usuarios `is_featured` es visible para cualquier usuario autenticado (feed de autores destacados en `/feed`).
 - Para producción: reemplazar `http://localhost:3000` por la URL real del deploy

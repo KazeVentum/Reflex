@@ -41,6 +41,7 @@ export interface Reflection {
   duration_seconds: number | null;
   tags: string[];
   notes: string | null;
+  is_public: boolean;
   created_at: string;
   books?: Book;
 }
@@ -53,6 +54,11 @@ export interface Quote {
   quote_text: string;
   notes: string | null;
   tags: string[];
+  is_public: boolean;
   created_at: string;
   books?: Book;
 }
+
+export type FeedReflection = Reflection & { profiles: Pick<Profile, "id" | "display_name"> };
+export type FeedQuote = Quote & { profiles: Pick<Profile, "id" | "display_name"> };
+

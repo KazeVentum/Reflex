@@ -115,12 +115,14 @@ CREATE TABLE IF NOT EXISTS reflections (
   duration_seconds INTEGER,
   tags             TEXT[]      NOT NULL DEFAULT '{}',
   notes            TEXT,
+  is_public        BOOLEAN     NOT NULL DEFAULT false,
   created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE INDEX IF NOT EXISTS idx_reflections_user_created ON reflections(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_reflections_book         ON reflections(book_id);
 CREATE INDEX IF NOT EXISTS idx_reflections_tags         ON reflections USING GIN(tags);
+CREATE INDEX IF NOT EXISTS idx_reflections_public       ON reflections(is_public) WHERE is_public = true;
 
 ALTER TABLE reflections ENABLE ROW LEVEL SECURITY;
 
@@ -128,6 +130,14 @@ CREATE POLICY "users_own_reflections_select" ON reflections FOR SELECT USING ((S
 CREATE POLICY "users_own_reflections_insert" ON reflections FOR INSERT WITH CHECK ((SELECT auth.uid()) = user_id);
 CREATE POLICY "users_own_reflections_update" ON reflections FOR UPDATE USING ((SELECT auth.uid()) = user_id);
 CREATE POLICY "users_own_reflections_delete" ON reflections FOR DELETE USING ((SELECT auth.uid()) = user_id);
+
+-- Contenido de un usuario is_featured que él mismo marcó is_public: visible
+-- para cualquier usuario autenticado (feed de autores destacados).
+CREATE POLICY "featured_public_reflections_select_authenticated" ON reflections FOR SELECT TO authenticated
+  USING (
+    is_public = true
+    AND EXISTS (SELECT 1 FROM profiles p WHERE p.id = reflections.user_id AND p.is_featured = true)
+  );
 
 -- ─────────────────────────────────────────
 -- TABLA: quotes
@@ -140,12 +150,14 @@ CREATE TABLE IF NOT EXISTS quotes (
   quote_text  TEXT        NOT NULL,
   notes       TEXT,
   tags        TEXT[]      NOT NULL DEFAULT '{}',
+  is_public   BOOLEAN     NOT NULL DEFAULT false,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE INDEX IF NOT EXISTS idx_quotes_user_created ON quotes(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_quotes_book         ON quotes(book_id);
 CREATE INDEX IF NOT EXISTS idx_quotes_tags         ON quotes USING GIN(tags);
+CREATE INDEX IF NOT EXISTS idx_quotes_public       ON quotes(is_public) WHERE is_public = true;
 
 ALTER TABLE quotes ENABLE ROW LEVEL SECURITY;
 
@@ -153,6 +165,12 @@ CREATE POLICY "users_own_quotes_select" ON quotes FOR SELECT USING ((SELECT auth
 CREATE POLICY "users_own_quotes_insert" ON quotes FOR INSERT WITH CHECK ((SELECT auth.uid()) = user_id);
 CREATE POLICY "users_own_quotes_update" ON quotes FOR UPDATE USING ((SELECT auth.uid()) = user_id);
 CREATE POLICY "users_own_quotes_delete" ON quotes FOR DELETE USING ((SELECT auth.uid()) = user_id);
+
+CREATE POLICY "featured_public_quotes_select_authenticated" ON quotes FOR SELECT TO authenticated
+  USING (
+    is_public = true
+    AND EXISTS (SELECT 1 FROM profiles p WHERE p.id = quotes.user_id AND p.is_featured = true)
+  );
 
 -- Segunda FK directa a profiles(id) (además de la que ya va a auth.users):
 -- el embedding de PostgREST (.select("*, profiles(...)")) necesita una FK
@@ -171,6 +189,22 @@ BEGIN
       FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
   END IF;
 END $$;
+
+-- Requerida o el join embebido books(id,title,author) del feed vuelve null:
+-- PostgREST chequea RLS de la tabla embebida de forma independiente a la
+-- policy de la fila padre.
+--
+-- Tradeoff deliberado: RLS es por fila, no por columna, así que esto deja
+-- leer la fila COMPLETA de books (no solo id/title/author) a cualquier
+-- usuario autenticado, para cualquier libro con al menos una reflexión/cita
+-- pública de un usuario destacado. La UI del feed solo pide id/title/author,
+-- pero un select("*") directo vería también current_page/total_pages/
+-- created_at. Aceptado a la escala de esta app personal.
+CREATE POLICY "public_featured_books_select" ON books FOR SELECT TO authenticated
+  USING (
+    EXISTS (SELECT 1 FROM reflections r WHERE r.book_id = books.id AND r.is_public = true)
+    OR EXISTS (SELECT 1 FROM quotes q WHERE q.book_id = books.id AND q.is_public = true)
+  );
 
 -- ─────────────────────────────────────────
 -- TABLA: reading_logs

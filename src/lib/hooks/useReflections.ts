@@ -42,7 +42,7 @@ export function useReflections(filters: Filters = {}) {
 
   const updateReflection = async (
     id: string,
-    updates: Partial<Pick<Reflection, "title" | "book_id" | "page_number" | "tags" | "notes">>
+    updates: Partial<Pick<Reflection, "title" | "book_id" | "page_number" | "tags" | "notes" | "is_public">>
   ): Promise<boolean> => {
     const { error } = await supabase.from("reflections").update(updates).eq("id", id);
     if (!error) {

@@ -10,7 +10,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 interface Props {
   reflection: Reflection;
   onDelete: (id: string, audioPath: string) => void;
-  onUpdate: (id: string, updates: Partial<Pick<Reflection, "title" | "book_id" | "page_number" | "tags" | "notes">>) => Promise<boolean>;
+  onUpdate: (id: string, updates: Partial<Pick<Reflection, "title" | "book_id" | "page_number" | "tags" | "notes" | "is_public">>) => Promise<boolean>;
 }
 
 function formatDuration(seconds: number | null): string {
@@ -36,6 +36,7 @@ export function ReflectionCard({ reflection, onDelete, onUpdate }: Props) {
   const [pageNumber, setPageNumber] = useState(reflection.page_number?.toString() ?? "");
   const [tags, setTags] = useState<string[]>(reflection.tags);
   const [notes, setNotes] = useState(reflection.notes ?? "");
+  const [isPublic, setIsPublic] = useState(reflection.is_public);
   const [saving, setSaving] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
@@ -53,6 +54,7 @@ export function ReflectionCard({ reflection, onDelete, onUpdate }: Props) {
       page_number: pageNumber ? parseInt(pageNumber, 10) : null,
       tags,
       notes: notes.trim() || null,
+      is_public: isPublic,
     });
     if (ok) setEditing(false);
     setSaving(false);
@@ -65,6 +67,7 @@ export function ReflectionCard({ reflection, onDelete, onUpdate }: Props) {
     setPageNumber(reflection.page_number?.toString() ?? "");
     setTags(reflection.tags);
     setNotes(reflection.notes ?? "");
+    setIsPublic(reflection.is_public);
     setEditing(false);
   };
 
@@ -181,6 +184,34 @@ export function ReflectionCard({ reflection, onDelete, onUpdate }: Props) {
                   rows={3}
                   className={`${inputClass} resize-none`}
                 />
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="flex flex-col">
+                  <span className="text-sm text-[var(--fg)]">Hacer pública</span>
+                  <span className="text-xs text-[var(--muted)]">
+                    Visible en el feed si estás destacado
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={isPublic}
+                  aria-label="Hacer pública"
+                  onClick={(e) => { e.stopPropagation(); setIsPublic((v) => !v); }}
+                  className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors ${
+                    isPublic
+                      ? "bg-[var(--accent)] border-[var(--accent)]"
+                      : "bg-[var(--surface)] border-[var(--border)] hover:border-[var(--accent)]"
+                  }`}
+                >
+                  <span
+                    className="absolute top-1 left-1 h-4 w-4 rounded-full transition-transform"
+                    style={{
+                      transform: isPublic ? "translateX(20px)" : "none",
+                      backgroundColor: isPublic ? "var(--bg)" : "var(--muted)",
+                    }}
+                  />
+                </button>
               </div>
               <div className="flex gap-2">
                 <button

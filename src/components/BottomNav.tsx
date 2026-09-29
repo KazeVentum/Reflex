@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Mic, BookOpen, Library } from "lucide-react";
+import { Mic, BookOpen, Library, Users } from "lucide-react";
 
 export function BottomNav() {
   const pathname = usePathname();
@@ -34,6 +34,7 @@ export function BottomNav() {
       {navItem("/library", <Library size={22} strokeWidth={1.8} />, "Biblioteca")}
       {navItem("/", <Mic size={22} strokeWidth={1.8} />, "Grabar")}
       {navItem("/books", <BookOpen size={22} strokeWidth={1.8} />, "Libros")}
+      {navItem("/feed", <Users size={22} strokeWidth={1.8} />, "Feed")}
     </nav>
   );
 }

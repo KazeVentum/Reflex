@@ -45,7 +45,7 @@ export function useQuotes(filters: Filters = {}) {
 
   const updateQuote = async (
     id: string,
-    updates: Partial<Pick<Quote, "book_id" | "page_number" | "quote_text" | "notes" | "tags">>
+    updates: Partial<Pick<Quote, "book_id" | "page_number" | "quote_text" | "notes" | "tags" | "is_public">>
   ): Promise<boolean> => {
     const { error } = await supabase.from("quotes").update(updates).eq("id", id);
     if (!error) {

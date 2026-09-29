@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Mic, BookOpen, Library } from "lucide-react";
+import { Mic, BookOpen, Library, Users } from "lucide-react";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -32,6 +32,7 @@ export function Sidebar() {
         {navItem("/", <Mic size={20} strokeWidth={1.8} />, "Grabar")}
         {navItem("/library", <Library size={20} strokeWidth={1.8} />, "Biblioteca")}
         {navItem("/books", <BookOpen size={20} strokeWidth={1.8} />, "Libros")}
+        {navItem("/feed", <Users size={20} strokeWidth={1.8} />, "Feed")}
       </nav>
     </aside>
   );
