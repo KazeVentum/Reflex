@@ -26,8 +26,26 @@ Aplicar en orden sobre una base ya existente:
 | `migration_add_notes.sql` | Agrega columna `notes` a `reflections` |
 | `migration_add_quotes.sql` | Crea tabla `quotes` |
 | `migration_reading_tracker.sql` | Agrega `total_pages` y `current_page` a `books`, crea tabla `reading_logs` y función `upsert_reading_log` |
+| `migration_add_profiles_and_roles.sql` | Crea tabla `profiles` (roles `is_admin`/`is_featured`), trigger `handle_new_user` para auto-crearla en el signup + backfill, y una FK directa `reflections`/`quotes` → `profiles` |
+
+Después de aplicar `migration_add_profiles_and_roles.sql`, otorgate admin a mano (no hay UI para el primer admin):
+```sql
+UPDATE profiles SET is_admin = true WHERE email = '<tu email>';
+```
 
 ## Esquema actual
+
+### `profiles`
+| Columna | Tipo | Descripción |
+|---------|------|-------------|
+| `id` | UUID | PK, FK → auth.users |
+| `email` | TEXT | Duplicado de auth.users.email (no expuesto vía PostgREST) |
+| `display_name` | TEXT | Nombre a mostrar (default: parte local del email) |
+| `is_admin` | BOOLEAN | Acceso a `/admin/users` (default false) |
+| `is_featured` | BOOLEAN | Aparece en el feed de autores destacados (default false, toggle manual desde `/admin/users`) |
+| `created_at` | TIMESTAMPTZ | Fecha de creación |
+
+Se crea automáticamente vía trigger `handle_new_user` en `auth.users` (`AFTER INSERT`). No hay policy de auto-actualización: solo un admin puede cambiar `is_admin`/`is_featured` de cualquier fila (ver RLS en `schema.sql`).
 
 ### `books`
 | Columna | Tipo | Descripción |

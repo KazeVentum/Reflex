@@ -1,6 +1,86 @@
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ─────────────────────────────────────────
+-- TABLA: profiles
+-- Un registro por usuario (id = auth.users.id), con roles/flags de app.
+-- ─────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS profiles (
+  id           UUID        PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email        TEXT,
+  display_name TEXT,
+  is_admin     BOOLEAN     NOT NULL DEFAULT false,
+  is_featured  BOOLEAN     NOT NULL DEFAULT false,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Crea el profile automáticamente al registrarse.
+CREATE OR REPLACE FUNCTION handle_new_user()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, display_name)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1))
+  )
+  ON CONFLICT (id) DO NOTHING;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION handle_new_user();
+
+-- Backfill para usuarios que ya existían antes de este trigger.
+INSERT INTO public.profiles (id, email, display_name)
+SELECT id, email, COALESCE(raw_user_meta_data->>'full_name', split_part(email, '@', 1))
+FROM auth.users
+ON CONFLICT (id) DO NOTHING;
+
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "users_own_profile_select" ON profiles FOR SELECT TO authenticated
+  USING ((SELECT auth.uid()) = id);
+
+CREATE POLICY "featured_profiles_select_authenticated" ON profiles FOR SELECT TO authenticated
+  USING (is_featured = true);
+
+-- Recursion-safe: la subquery solo busca la propia fila del que llama
+-- (admin_row.id = auth.uid()), que ya es visible sin condiciones por la
+-- policy de arriba — no hay recursión abierta.
+CREATE POLICY "admins_select_all_profiles" ON profiles FOR SELECT TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles admin_row
+      WHERE admin_row.id = (SELECT auth.uid()) AND admin_row.is_admin = true
+    )
+  );
+
+CREATE POLICY "admins_update_all_profiles" ON profiles FOR UPDATE TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles admin_row
+      WHERE admin_row.id = (SELECT auth.uid()) AND admin_row.is_admin = true
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM profiles admin_row
+      WHERE admin_row.id = (SELECT auth.uid()) AND admin_row.is_admin = true
+    )
+  );
+
+-- Sin policy de auto-actualización a propósito: RLS es por fila, no por
+-- columna, así que una policy "propia fila" para UPDATE dejaría a
+-- cualquier usuario poner su propio is_admin/is_featured en true.
+
+-- ─────────────────────────────────────────
 -- TABLA: books
 -- ─────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS books (
@@ -73,6 +153,24 @@ CREATE POLICY "users_own_quotes_select" ON quotes FOR SELECT USING ((SELECT auth
 CREATE POLICY "users_own_quotes_insert" ON quotes FOR INSERT WITH CHECK ((SELECT auth.uid()) = user_id);
 CREATE POLICY "users_own_quotes_update" ON quotes FOR UPDATE USING ((SELECT auth.uid()) = user_id);
 CREATE POLICY "users_own_quotes_delete" ON quotes FOR DELETE USING ((SELECT auth.uid()) = user_id);
+
+-- Segunda FK directa a profiles(id) (además de la que ya va a auth.users):
+-- el embedding de PostgREST (.select("*, profiles(...)")) necesita una FK
+-- directa para descubrir la relación; compartir referencia a auth.users
+-- no alcanza.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'reflections_user_id_profiles_fkey') THEN
+    ALTER TABLE reflections
+      ADD CONSTRAINT reflections_user_id_profiles_fkey
+      FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'quotes_user_id_profiles_fkey') THEN
+    ALTER TABLE quotes
+      ADD CONSTRAINT quotes_user_id_profiles_fkey
+      FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
+  END IF;
+END $$;
 
 -- ─────────────────────────────────────────
 -- TABLA: reading_logs

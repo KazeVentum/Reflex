@@ -1,3 +1,12 @@
+export interface Profile {
+  id: string;
+  email: string | null;
+  display_name: string | null;
+  is_admin: boolean;
+  is_featured: boolean;
+  created_at: string;
+}
+
 export interface Book {
   id: string;
   user_id: string;
@@ -47,4 +56,3 @@ export interface Quote {
   created_at: string;
   books?: Book;
 }
-
