@@ -74,7 +74,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="py-3 bg-[var(--fg)] text-[var(--bg)] rounded-xl hover:opacity-80 disabled:opacity-50 transition-opacity font-medium"
+            className="py-3 bg-[var(--accent)] text-[var(--bg)] rounded-xl hover:opacity-80 disabled:opacity-50 transition-opacity font-medium"
           >
             {loading ? "..." : mode === "login" ? "Ingresar" : "Crear cuenta"}
           </button>

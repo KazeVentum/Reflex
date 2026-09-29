@@ -43,6 +43,45 @@
   --danger: #c05050;
 }
 
+/* Paleta "Rosa" — rosa saturado sobre ciruela casi negro (mockup 2026-09).
+   Se activa con la clase .pink en <html> (toggle en Configuración) y se
+   combina con light/dark igual que la paleta por defecto: .pink sola =
+   claro rosado, .pink + modo oscuro (sistema o forzado) = oscuro rosado.
+   El compuesto .pink.dark es explícito a propósito: .pink y .dark tienen
+   la misma especificidad, así que sin él la base clara de .pink ganaría
+   por orden de fuente sobre .dark. */
+.pink {
+  --bg: #fdf5f7;
+  --fg: #4a2c36;
+  --muted: #8a6773; /* Contraste accesible sobre el fondo blush */
+  --border: #efd9e0;
+  --accent: #c2688a;
+  --surface: #f8eaef;
+  --danger: #c05050;
+}
+
+@media (prefers-color-scheme: dark) {
+  .pink:not(.light) {
+    --bg: #140e12; /* Ciruela casi negro */
+    --fg: #f6e7ee;
+    --muted: #9a7c88;
+    --border: #2e2029;
+    --accent: #e58bb2; /* Rosa saturado */
+    --surface: #1b1319;
+    --danger: #e07070;
+  }
+}
+
+.pink.dark {
+  --bg: #140e12;
+  --fg: #f6e7ee;
+  --muted: #9a7c88;
+  --border: #2e2029;
+  --accent: #e58bb2;
+  --surface: #1b1319;
+  --danger: #e07070;
+}
+
 html {
   background-color: var(--bg);
 }
