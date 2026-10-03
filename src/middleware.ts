@@ -21,7 +21,21 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  // getClaims() verifies the JWT's cryptographic signature (never trusts the
+  // cookie blindly, unlike getSession()). When this project's access tokens
+  // are signed with an asymmetric key (ES256/RS256 — see Settings > Auth > JWT
+  // Signing Keys in the Supabase dashboard), verification happens locally
+  // against a cached JWKS, avoiding the network round trip to the Auth server
+  // that getUser() always makes. If the project is still on the legacy HS256
+  // shared secret, this automatically falls back to the same network call
+  // getUser() makes, so there's no regression either way.
+  // Trade-off (per Supabase's own docs): unlike getUser(), this does NOT ask
+  // the Auth server whether the session was revoked server-side (logout on
+  // another device, ban, etc.) — it only checks signature + expiry. A revoked
+  // session stays valid here until the access token's natural expiry
+  // (default 1h). Acceptable for this app; revisit if that changes.
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const user = claimsData?.claims ?? null;
 
   const isPublicPath =
     request.nextUrl.pathname.startsWith("/login") ||
@@ -39,7 +53,7 @@ export async function middleware(request: NextRequest) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("is_admin")
-      .eq("id", user.id)
+      .eq("id", user.sub)
       .single();
 
     if (!profile?.is_admin) {
