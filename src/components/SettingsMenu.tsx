@@ -1,7 +1,10 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Settings } from "lucide-react";
+import Link from "next/link";
+import { Settings, User, ShieldCheck } from "lucide-react";
+import { useMyProfile } from "@/lib/hooks/useMyProfile";
+import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
 
 const PALETTE_KEY = "palette";
 
@@ -10,13 +13,17 @@ function applyPalette(pink: boolean) {
 }
 
 /** Menú de preferencias de la app (engranaje arriba a la derecha, junto al
- *  toggle de tema). Solo ajustes de la app — identidad pública (nombre,
- *  perfil) vive en "Mi perfil" en la nav, no acá, para no tener dos
- *  lugares que hacen lo mismo. */
+ *  toggle de tema). En desktop el Sidebar ya tiene "Mi perfil"/"Admin"
+ *  siempre visibles, así que acá solo van ajustes (paleta). En mobile no
+ *  hay Sidebar y la píldora de abajo ya está llena con las secciones
+ *  principales, así que "Mi perfil"/"Admin" se agregan acá (md:hidden) —
+ *  a un toque del engranaje, no escondidos sin ningún acceso. */
 export function SettingsMenu() {
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const [pink, setPink] = useState(false);
+  const { profile } = useMyProfile();
+  const { isAdmin } = useIsAdmin();
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -113,6 +120,31 @@ export function SettingsMenu() {
                 />
               </button>
             </div>
+
+            {(profile || isAdmin) && (
+              <div className="md:hidden mt-4 pt-4 border-t border-[var(--border)] flex flex-col gap-1">
+                {profile && (
+                  <Link
+                    href={`/feed/${profile.id}`}
+                    onClick={() => setOpen(false)}
+                    className="flex items-center gap-2.5 py-2 text-sm text-[var(--muted)] hover:text-[var(--fg)] transition-colors"
+                  >
+                    <User size={15} strokeWidth={1.8} />
+                    Mi perfil
+                  </Link>
+                )}
+                {isAdmin && (
+                  <Link
+                    href="/admin/users"
+                    onClick={() => setOpen(false)}
+                    className="flex items-center gap-2.5 py-2 text-sm text-[var(--muted)] hover:text-[var(--fg)] transition-colors"
+                  >
+                    <ShieldCheck size={15} strokeWidth={1.8} />
+                    Admin
+                  </Link>
+                )}
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

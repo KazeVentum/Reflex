@@ -34,7 +34,7 @@ export default function FeedPage() {
   return (
     <>
       <Sidebar />
-      <main className="min-h-screen flex flex-col px-5 pt-10 pb-36 max-w-md md:max-w-3xl mx-auto w-full md:pl-64 md:pb-16 md:pt-16 xl:max-w-5xl 2xl:max-w-7xl">
+      <main className="min-h-screen flex flex-col px-5 pt-16 pb-36 max-w-md md:max-w-3xl mx-auto w-full md:pl-64 md:pb-16 md:pt-16 xl:max-w-5xl 2xl:max-w-7xl">
         <motion.h1
           className="font-[family-name:var(--font-fraunces)] text-2xl md:text-3xl text-[var(--fg)] mb-6 md:mb-8"
           initial={{ opacity: 0, y: -10 }}

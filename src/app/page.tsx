@@ -136,7 +136,7 @@ export default function Home() {
   return (
     <>
     <Sidebar />
-    <main className="min-h-screen flex flex-col px-5 pt-14 pb-36 max-w-md md:max-w-4xl mx-auto w-full gap-4 md:pl-64 md:pb-16 md:pt-20 lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl">
+    <main className="min-h-screen flex flex-col px-5 pt-16 pb-36 max-w-md md:max-w-4xl mx-auto w-full gap-4 md:pl-64 md:pb-16 md:pt-20 lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl">
 
       {/* Greeting */}
       <motion.div
@@ -150,7 +150,12 @@ export default function Home() {
         </h1>
       </motion.div>
 
-      <div className="flex flex-col gap-4 md:grid md:grid-cols-[2fr_1fr] md:grid-rows-[auto_auto] md:gap-x-6 md:gap-y-4 md:items-start">
+      <div className="flex flex-col gap-4 md:grid md:grid-cols-[2fr_1fr] md:gap-x-6 md:gap-y-4 md:items-start">
+        {/* Columna izquierda: su alto depende solo de este contenido, no
+            de cuántos libros haya "en progreso" a la derecha — por eso el
+            botón de grabar vive acá adentro, al final, en vez de en una
+            fila aparte debajo de todo el grid (ahí terminaba empujado
+            lejos cuando la columna de libros era más alta). */}
         <div className="order-1 md:order-none flex flex-col gap-4 md:col-start-1 md:row-start-1">
           {/* Quote card */}
           <motion.div
@@ -178,36 +183,36 @@ export default function Home() {
             <p className="text-[10px] uppercase tracking-widest text-[var(--accent)] mb-1.5">Reflexión de esta noche</p>
             <p className="text-sm text-[var(--fg)] leading-relaxed">{prompt}</p>
           </motion.div>
+
+          {/* Hold-to-record */}
+          <motion.div
+            className="flex flex-col items-center gap-4 py-2 md:py-6"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+          >
+            <RecordButton state={state} onStart={start} onStop={stop} />
+            <AnimatePresence mode="wait">
+              <motion.p
+                key={state}
+                className="text-xs text-[var(--muted)] text-center"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                {state === "recording"
+                  ? `Grabando… ${elapsed}s`
+                  : "Toca para capturar un pensamiento"}
+              </motion.p>
+            </AnimatePresence>
+          </motion.div>
         </div>
 
         {/* Books in progress */}
         <div className="order-3 md:order-none md:col-start-2 md:row-start-1 md:sticky md:top-10">
           <BooksInProgress onOpenSheet={setSheetBook} />
         </div>
-
-        {/* Hold-to-record — centrado en todo el ancho del contenido */}
-        <motion.div
-          className="order-2 md:order-none flex flex-col items-center gap-4 py-2 md:py-8 md:col-start-1 md:col-span-2 md:row-start-2"
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-        >
-          <RecordButton state={state} onStart={start} onStop={stop} />
-          <AnimatePresence mode="wait">
-            <motion.p
-              key={state}
-              className="text-xs text-[var(--muted)] text-center"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              {state === "recording"
-                ? `Grabando… ${elapsed}s`
-                : "Toca para capturar un pensamiento"}
-            </motion.p>
-          </AnimatePresence>
-        </motion.div>
       </div>
 
       <PageUpdateSheet
