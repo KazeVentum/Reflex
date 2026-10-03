@@ -37,6 +37,14 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION handle_new_user();
 
+-- Supabase otorga EXECUTE automáticamente a anon/authenticated en funciones
+-- nuevas de public, lo que convierte cualquier función SECURITY DEFINER en
+-- un endpoint RPC público (confirmado con `supabase db advisors`). Al ser
+-- una función de trigger, una llamada RPC directa siempre falla (NEW solo
+-- existe en un trigger real), pero igual se revoca el acceso RPC innecesario
+-- por buena práctica. El trigger en sí no se ve afectado por este REVOKE.
+REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM anon, authenticated;
+
 -- Backfill para usuarios que ya existían antes de este trigger.
 INSERT INTO public.profiles (id, email, display_name)
 SELECT id, email, COALESCE(raw_user_meta_data->>'full_name', split_part(email, '@', 1))

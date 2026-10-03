@@ -34,6 +34,16 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION handle_new_user();
 
+-- Supabase auto-grants EXECUTE on new public functions to anon/authenticated,
+-- which turns any SECURITY DEFINER function into a public RPC endpoint
+-- (confirmed via `supabase db advisors` / get_advisors after applying this
+-- migration). handle_new_user is a trigger function (RETURNS TRIGGER) — a
+-- direct RPC call to it always errors since NEW/trigger context only
+-- exists inside a real trigger invocation — but revoking the unnecessary
+-- public surface is still correct per Supabase's own security checklist.
+-- Trigger invocation itself is unaffected: it isn't subject to this ACL.
+REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM anon, authenticated;
+
 -- Backfill profiles for users that already existed before this migration.
 INSERT INTO public.profiles (id, email, display_name)
 SELECT id, email, COALESCE(raw_user_meta_data->>'full_name', split_part(email, '@', 1))
