@@ -59,30 +59,35 @@ CREATE POLICY "users_own_profile_select" ON profiles FOR SELECT TO authenticated
 CREATE POLICY "featured_profiles_select_authenticated" ON profiles FOR SELECT TO authenticated
   USING (is_featured = true);
 
--- Recursion-safe: la subquery solo busca la propia fila del que llama
--- (admin_row.id = auth.uid()), que ya es visible sin condiciones por la
--- policy de arriba — no hay recursión abierta.
-CREATE POLICY "admins_select_all_profiles" ON profiles FOR SELECT TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM profiles admin_row
-      WHERE admin_row.id = (SELECT auth.uid()) AND admin_row.is_admin = true
-    )
+-- Una policy de profiles NO puede consultar profiles directamente vía un
+-- EXISTS plano dentro de su propio USING — Postgres re-aplica RLS a ese
+-- scan interno, que vuelve a incluir la misma policy, y entra en
+-- "infinite recursion detected in policy for relation profiles" (42P17).
+-- La función SECURITY DEFINER rompe el ciclo: su lectura interna de
+-- profiles corre con los privilegios de quien la creó, sin pasar RLS de
+-- nuevo. (Confirmado con una query real que recursionaba antes de este
+-- cambio y no después.)
+CREATE OR REPLACE FUNCTION is_admin()
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+STABLE
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true
   );
+$$;
+
+REVOKE EXECUTE ON FUNCTION is_admin() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION is_admin() TO authenticated;
+
+CREATE POLICY "admins_select_all_profiles" ON profiles FOR SELECT TO authenticated
+  USING (is_admin());
 
 CREATE POLICY "admins_update_all_profiles" ON profiles FOR UPDATE TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM profiles admin_row
-      WHERE admin_row.id = (SELECT auth.uid()) AND admin_row.is_admin = true
-    )
-  )
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM profiles admin_row
-      WHERE admin_row.id = (SELECT auth.uid()) AND admin_row.is_admin = true
-    )
-  );
+  USING (is_admin())
+  WITH CHECK (is_admin());
 
 -- Sin policy de auto-actualización a propósito: RLS es por fila, no por
 -- columna, así que una policy "propia fila" para UPDATE dejaría a

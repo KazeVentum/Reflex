@@ -29,6 +29,7 @@ Aplicar en orden sobre una base ya existente:
 | `migration_add_profiles_and_roles.sql` | Crea tabla `profiles` (roles `is_admin`/`is_featured`), trigger `handle_new_user` para auto-crearla en el signup + backfill, y una FK directa `reflections`/`quotes` → `profiles` |
 | `migration_add_public_content.sql` | Agrega `is_public` a `reflections`/`quotes` y las policies de lectura pública (para featured + is_public) sobre `reflections`, `quotes` y `books` |
 | `migration_add_public_content_storage.sql` | Policy de Storage que permite reproducir el audio de reflexiones públicas de usuarios destacados |
+| `migration_fix_profiles_rls_recursion.sql` | Corrige "infinite recursion detected in policy for relation profiles": mueve el chequeo de admin a la función `is_admin()` (`SECURITY DEFINER`) en vez de un `EXISTS` directo sobre `profiles` dentro de su propia policy |
 
 Después de aplicar `migration_add_profiles_and_roles.sql`, otorgate admin a mano (no hay UI para el primer admin):
 ```sql
@@ -48,6 +49,8 @@ UPDATE profiles SET is_admin = true WHERE email = '<tu email>';
 | `created_at` | TIMESTAMPTZ | Fecha de creación |
 
 Se crea automáticamente vía trigger `handle_new_user` en `auth.users` (`AFTER INSERT`). No hay policy de auto-actualización: solo un admin puede cambiar `is_admin`/`is_featured` de cualquier fila (ver RLS en `schema.sql`).
+
+El chequeo de admin en las policies usa la función `is_admin()` (`SECURITY DEFINER`, solo ejecutable por `authenticated`) en vez de un `EXISTS` directo sobre `profiles` — una policy de `profiles` no puede referenciar `profiles` mediante un `EXISTS` plano dentro de su propio `USING`, porque Postgres vuelve a aplicar RLS a ese scan interno y entra en recursión infinita (`42P17`). La función rompe el ciclo porque su lectura interna corre con privilegios de su dueño, sin pasar RLS de nuevo.
 
 ### `books`
 | Columna | Tipo | Descripción |
