@@ -1,10 +1,12 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Mic, BookOpen, Library, Users } from "lucide-react";
+import { Mic, BookOpen, Library, Users, ShieldCheck } from "lucide-react";
+import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
 
 export function BottomNav() {
   const pathname = usePathname();
+  const { isAdmin } = useIsAdmin();
 
   const navItem = (href: string, icon: React.ReactNode, label: string) => {
     const active = pathname === href;
@@ -35,6 +37,7 @@ export function BottomNav() {
       {navItem("/", <Mic size={22} strokeWidth={1.8} />, "Grabar")}
       {navItem("/books", <BookOpen size={22} strokeWidth={1.8} />, "Libros")}
       {navItem("/feed", <Users size={22} strokeWidth={1.8} />, "Feed")}
+      {isAdmin && navItem("/admin/users", <ShieldCheck size={22} strokeWidth={1.8} />, "Admin")}
     </nav>
   );
 }
