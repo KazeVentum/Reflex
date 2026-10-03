@@ -17,10 +17,14 @@ export function useProfiles() {
     { revalidateOnFocus: false }
   );
 
-  const toggleFeatured = async (id: string, isFeatured: boolean): Promise<boolean> => {
+  const toggleFlag = async (
+    id: string,
+    field: "is_featured" | "is_verified",
+    value: boolean
+  ): Promise<boolean> => {
     const { data } = await supabase
       .from("profiles")
-      .update({ is_featured: isFeatured })
+      .update({ [field]: value })
       .eq("id", id)
       .select()
       .maybeSingle();
@@ -30,9 +34,12 @@ export function useProfiles() {
     // detects that case, not just `error`.
     if (!data) return false;
 
-    mutate(profiles.map((p) => (p.id === id ? { ...p, is_featured: isFeatured } : p)), false);
+    mutate(profiles.map((p) => (p.id === id ? { ...p, [field]: value } : p)), false);
     return true;
   };
 
-  return { profiles, loading, toggleFeatured, refetch: () => mutate() };
+  const toggleFeatured = (id: string, isFeatured: boolean) => toggleFlag(id, "is_featured", isFeatured);
+  const toggleVerified = (id: string, isVerified: boolean) => toggleFlag(id, "is_verified", isVerified);
+
+  return { profiles, loading, toggleFeatured, toggleVerified, refetch: () => mutate() };
 }

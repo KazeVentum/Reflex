@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { Feather } from "lucide-react";
 import { Sidebar } from "@/components/Sidebar";
 import { BottomNav } from "@/components/BottomNav";
 import { useFeaturedProfiles } from "@/lib/hooks/useFeaturedProfiles";
@@ -35,8 +36,11 @@ export default function FeedPage() {
                 href={`/feed/${p.id}`}
                 className="border border-[var(--border)] rounded-2xl p-4 hover:border-[var(--accent)] transition-colors"
               >
-                <p className="font-[family-name:var(--font-fraunces)] text-[var(--fg)]">
+                <p className="flex items-center gap-1.5 font-[family-name:var(--font-fraunces)] text-[var(--fg)]">
                   {p.display_name}
+                  {p.is_verified && (
+                    <Feather size={14} strokeWidth={1.8} className="text-[var(--accent)] shrink-0" />
+                  )}
                 </p>
               </Link>
             ))}

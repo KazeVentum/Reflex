@@ -32,6 +32,7 @@ Aplicar en orden sobre una base ya existente:
 | `migration_fix_profiles_rls_recursion.sql` | Corrige "infinite recursion detected in policy for relation profiles": mueve el chequeo de admin a la función `is_admin()` (`SECURITY DEFINER`) en vez de un `EXISTS` directo sobre `profiles` dentro de su propia policy |
 | `migration_decouple_public_from_featured.sql` | Desacopla visibilidad de curación: cualquier reflexión/cita `is_public` es visible para cualquier usuario autenticado (antes exigía también `is_featured` del autor); agrega policy para que el perfil de un autor con contenido público sea visible aunque no esté destacado |
 | `migration_decouple_public_from_featured_storage.sql` | Mismo desacople en la policy de Storage que permite reproducir audio |
+| `migration_add_verified_and_display_name_update.sql` | Agrega `is_verified` a `profiles` y la función `update_my_display_name()` (`SECURITY DEFINER`, acotada a esa columna) para que cada usuario cambie su propio nombre público |
 
 Después de aplicar `migration_add_profiles_and_roles.sql`, otorgate admin a mano (no hay UI para el primer admin):
 ```sql
@@ -45,12 +46,13 @@ UPDATE profiles SET is_admin = true WHERE email = '<tu email>';
 |---------|------|-------------|
 | `id` | UUID | PK, FK → auth.users |
 | `email` | TEXT | Duplicado de auth.users.email (no expuesto vía PostgREST) |
-| `display_name` | TEXT | Nombre a mostrar (default: parte local del email) |
+| `display_name` | TEXT | Nombre a mostrar (default: parte local del email). El propio usuario lo puede cambiar desde Configuración, vía `update_my_display_name()` |
 | `is_admin` | BOOLEAN | Acceso a `/admin/users` (default false) |
 | `is_featured` | BOOLEAN | Cura el índice `/feed` ("autores destacados"), toggle manual desde `/admin/users`. NO controla visibilidad — cualquier usuario con contenido `is_public` tiene su perfil/muro visible, esté o no destacado (default false) |
+| `is_verified` | BOOLEAN | Insignia de verificado (ícono de pluma junto al nombre), toggle manual desde `/admin/users` (default false) |
 | `created_at` | TIMESTAMPTZ | Fecha de creación |
 
-Se crea automáticamente vía trigger `handle_new_user` en `auth.users` (`AFTER INSERT`). No hay policy de auto-actualización: solo un admin puede cambiar `is_admin`/`is_featured` de cualquier fila (ver RLS en `schema.sql`).
+Se crea automáticamente vía trigger `handle_new_user` en `auth.users` (`AFTER INSERT`). No hay policy de auto-actualización genérica: solo un admin puede cambiar `is_admin`/`is_featured`/`is_verified` de cualquier fila (ver RLS en `schema.sql`). El `display_name` es la única columna que el propio usuario puede cambiar, y solo a través de la función `update_my_display_name()` — nunca con un `UPDATE` directo a la tabla.
 
 El chequeo de admin en las policies usa la función `is_admin()` (`SECURITY DEFINER`, solo ejecutable por `authenticated`) en vez de un `EXISTS` directo sobre `profiles` — una policy de `profiles` no puede referenciar `profiles` mediante un `EXISTS` plano dentro de su propio `USING`, porque Postgres vuelve a aplicar RLS a ese scan interno y entra en recursión infinita (`42P17`). La función rompe el ciclo porque su lectura interna corre con privilegios de su dueño, sin pasar RLS de nuevo.
 

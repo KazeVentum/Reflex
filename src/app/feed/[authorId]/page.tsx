@@ -2,6 +2,7 @@
 import { useMemo } from "react";
 import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
+import { Feather } from "lucide-react";
 import { Sidebar } from "@/components/Sidebar";
 import { BottomNav } from "@/components/BottomNav";
 import { useAuthorFeed } from "@/lib/hooks/useAuthorFeed";
@@ -52,12 +53,15 @@ export default function AuthorFeedPage() {
         {!loading && profile && (
           <>
             <motion.h1
-              className="font-[family-name:var(--font-fraunces)] text-2xl md:text-3xl text-[var(--fg)] mb-6 md:mb-8"
+              className="flex items-center gap-2 font-[family-name:var(--font-fraunces)] text-2xl md:text-3xl text-[var(--fg)] mb-6 md:mb-8"
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
             >
               {profile.display_name}
+              {profile.is_verified && (
+                <Feather size={20} strokeWidth={1.8} className="text-[var(--accent)]" />
+              )}
             </motion.h1>
 
             {groups.length === 0 && (

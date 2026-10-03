@@ -1,13 +1,52 @@
 "use client";
 import { motion } from "framer-motion";
+import { Feather } from "lucide-react";
 import { Sidebar } from "@/components/Sidebar";
 import { BottomNav } from "@/components/BottomNav";
 import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
 import { useProfiles } from "@/lib/hooks/useProfiles";
 
+function FlagSwitch({
+  label,
+  checked,
+  onToggle,
+  ariaLabel,
+}: {
+  label: string;
+  checked: boolean;
+  onToggle: () => void;
+  ariaLabel: string;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <span className="text-[9px] uppercase tracking-wide text-[var(--muted)]">{label}</span>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        aria-label={ariaLabel}
+        onClick={onToggle}
+        className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors ${
+          checked
+            ? "bg-[var(--accent)] border-[var(--accent)]"
+            : "bg-[var(--surface)] border-[var(--border)] hover:border-[var(--accent)]"
+        }`}
+      >
+        <span
+          className="absolute top-1 left-1 h-4 w-4 rounded-full transition-transform"
+          style={{
+            transform: checked ? "translateX(20px)" : "none",
+            backgroundColor: checked ? "var(--bg)" : "var(--muted)",
+          }}
+        />
+      </button>
+    </div>
+  );
+}
+
 export default function AdminUsersPage() {
   const { isAdmin, loading: loadingAdmin } = useIsAdmin();
-  const { profiles, loading, toggleFeatured } = useProfiles();
+  const { profiles, loading, toggleFeatured, toggleVerified } = useProfiles();
 
   return (
     <>
@@ -47,31 +86,28 @@ export default function AdminUsersPage() {
                 {profiles.map((p) => (
                   <div key={p.id} className="flex items-center justify-between gap-3 px-4 py-3.5">
                     <div className="flex flex-col min-w-0">
-                      <span className="text-sm text-[var(--fg)] truncate">
+                      <span className="flex items-center gap-1.5 text-sm text-[var(--fg)] truncate">
                         {p.display_name ?? p.email}
+                        {p.is_verified && (
+                          <Feather size={13} strokeWidth={1.8} className="text-[var(--accent)] shrink-0" />
+                        )}
                       </span>
                       <span className="text-xs text-[var(--muted)] truncate">{p.email}</span>
                     </div>
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={p.is_featured}
-                      aria-label={`Destacar a ${p.display_name ?? p.email}`}
-                      onClick={() => toggleFeatured(p.id, !p.is_featured)}
-                      className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors ${
-                        p.is_featured
-                          ? "bg-[var(--accent)] border-[var(--accent)]"
-                          : "bg-[var(--surface)] border-[var(--border)] hover:border-[var(--accent)]"
-                      }`}
-                    >
-                      <span
-                        className="absolute top-1 left-1 h-4 w-4 rounded-full transition-transform"
-                        style={{
-                          transform: p.is_featured ? "translateX(20px)" : "none",
-                          backgroundColor: p.is_featured ? "var(--bg)" : "var(--muted)",
-                        }}
+                    <div className="flex items-center gap-4 shrink-0">
+                      <FlagSwitch
+                        label="Destacado"
+                        checked={p.is_featured}
+                        onToggle={() => toggleFeatured(p.id, !p.is_featured)}
+                        ariaLabel={`Destacar a ${p.display_name ?? p.email}`}
                       />
-                    </button>
+                      <FlagSwitch
+                        label="Verificado"
+                        checked={p.is_verified}
+                        onToggle={() => toggleVerified(p.id, !p.is_verified)}
+                        ariaLabel={`Verificar a ${p.display_name ?? p.email}`}
+                      />
+                    </div>
                   </div>
                 ))}
               </div>

@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   display_name TEXT,
   is_admin     BOOLEAN     NOT NULL DEFAULT false,
   is_featured  BOOLEAN     NOT NULL DEFAULT false,
+  is_verified  BOOLEAN     NOT NULL DEFAULT false,
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -79,7 +80,15 @@ AS $$
   );
 $$;
 
-REVOKE EXECUTE ON FUNCTION is_admin() FROM PUBLIC;
+-- Nota operativa: Supabase re-otorga EXECUTE a anon/authenticated
+-- automáticamente al crear una función (un event trigger propio, ver
+-- rls_auto_enable() en los advisors), y ese auto-grant puede pisar un
+-- REVOKE hecho dentro del mismo script justo después del CREATE FUNCTION.
+-- Si `supabase db advisors` (o get_advisors) sigue marcando `anon` como
+-- ejecutor después de correr esto de una sola pasada, corré el REVOKE de
+-- nuevo como sentencia aparte — así es como se terminó de limpiar la
+-- primera vez.
+REVOKE EXECUTE ON FUNCTION is_admin() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION is_admin() TO authenticated;
 
 CREATE POLICY "admins_select_all_profiles" ON profiles FOR SELECT TO authenticated
@@ -89,9 +98,27 @@ CREATE POLICY "admins_update_all_profiles" ON profiles FOR UPDATE TO authenticat
   USING (is_admin())
   WITH CHECK (is_admin());
 
--- Sin policy de auto-actualización a propósito: RLS es por fila, no por
--- columna, así que una policy "propia fila" para UPDATE dejaría a
--- cualquier usuario poner su propio is_admin/is_featured en true.
+-- Sin policy de auto-actualización genérica a propósito: RLS es por fila,
+-- no por columna, así que una policy "propia fila" para UPDATE dejaría a
+-- cualquier usuario poner su propio is_admin/is_featured/is_verified en
+-- true. En cambio, cambiar el propio display_name pasa por esta función
+-- SECURITY DEFINER acotada a esa única columna.
+CREATE OR REPLACE FUNCTION update_my_display_name(new_name TEXT)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF trim(new_name) = '' OR length(trim(new_name)) > 40 THEN
+    RAISE EXCEPTION 'display_name must be 1-40 characters';
+  END IF;
+  UPDATE profiles SET display_name = trim(new_name) WHERE id = auth.uid();
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION update_my_display_name(TEXT) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION update_my_display_name(TEXT) TO authenticated;
 
 -- Un perfil es visible para cualquier usuario autenticado si ese usuario
 -- tiene al menos una reflexión/cita pública — "destacado" solo cura el

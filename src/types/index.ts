@@ -4,6 +4,7 @@ export interface Profile {
   display_name: string | null;
   is_admin: boolean;
   is_featured: boolean;
+  is_verified: boolean;
   created_at: string;
 }
 
@@ -59,6 +60,6 @@ export interface Quote {
   books?: Book;
 }
 
-export type FeedReflection = Reflection & { profiles: Pick<Profile, "id" | "display_name"> };
-export type FeedQuote = Quote & { profiles: Pick<Profile, "id" | "display_name"> };
+export type FeedReflection = Reflection & { profiles: Pick<Profile, "id" | "display_name" | "is_verified"> };
+export type FeedQuote = Quote & { profiles: Pick<Profile, "id" | "display_name" | "is_verified"> };
 

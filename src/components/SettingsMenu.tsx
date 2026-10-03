@@ -21,6 +21,10 @@ export function SettingsMenu() {
   const [open, setOpen] = useState(false);
   const [pink, setPink] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState("");
+  const [savingName, setSavingName] = useState(false);
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [nameSaved, setNameSaved] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -28,8 +32,34 @@ export function SettingsMenu() {
     setPink(stored);
     applyPalette(stored);
     setMounted(true);
-    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
+    supabase.auth.getUser().then(async ({ data }) => {
+      const user = data.user;
+      if (!user) return;
+      setUserId(user.id);
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("id", user.id)
+        .maybeSingle();
+      setDisplayName(profile?.display_name ?? "");
+    });
   }, []);
+
+  const handleSaveName = async () => {
+    const trimmed = displayName.trim();
+    if (!trimmed) return;
+    setSavingName(true);
+    setNameError(null);
+    setNameSaved(false);
+    const { error } = await supabase.rpc("update_my_display_name", { new_name: trimmed });
+    setSavingName(false);
+    if (error) {
+      setNameError("No se pudo guardar. Probá con un nombre más corto.");
+      return;
+    }
+    setNameSaved(true);
+    window.setTimeout(() => setNameSaved(false), 2000);
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -118,6 +148,35 @@ export function SettingsMenu() {
                 />
               </button>
             </div>
+
+            {userId && (
+              <div className="mt-4 pt-4 border-t border-[var(--border)] flex flex-col gap-2">
+                <label htmlFor="settings-display-name" className="text-sm text-[var(--fg)]">
+                  Nombre público
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    id="settings-display-name"
+                    type="text"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    maxLength={40}
+                    placeholder="Tu nombre"
+                    className="flex-1 min-w-0 px-3 py-2 text-sm rounded-xl border border-[var(--border)] bg-transparent text-[var(--fg)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--accent)]"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSaveName}
+                    disabled={savingName || !displayName.trim()}
+                    className="px-3 py-2 text-xs font-medium rounded-xl bg-[var(--accent)] text-[var(--bg)] hover:opacity-85 disabled:opacity-50 transition-opacity"
+                  >
+                    {savingName ? "..." : "Guardar"}
+                  </button>
+                </div>
+                {nameError && <p className="text-xs text-[var(--danger)]">{nameError}</p>}
+                {nameSaved && <p className="text-xs text-[var(--muted)]">Guardado.</p>}
+              </div>
+            )}
 
             {userId && (
               <Link
