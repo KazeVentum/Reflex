@@ -4,6 +4,10 @@ Resumen breve de cambios y problemas resueltos en este proyecto (sesión de trab
 
 ## 2026-10-03
 
+- **Bug mobile: el botón de grabar quedaba empujado muy abajo** cuando había varios libros "en progreso" (dependía del alto de esa columna). Fix: el botón ahora vive en la columna izquierda, cuyo alto es predecible.
+- **Bug mobile: la píldora de navegación se salía del viewport** en pantallas angostas (ítems de ancho fijo sumaban más que el ancho real del teléfono). Rediseño: los ítems inactivos son solo ícono (círculos parejos), el activo se expande mostrando su nombre, con animación spring al cambiar. Se agregó un tope duro de ancho como red de seguridad.
+- **Bug mobile: el título de la página chocaba con los íconos de arriba a la derecha** en títulos largos ("Autores destacados", el saludo con nombre). Fix: más espacio vertical arriba en mobile para que el título quede siempre debajo de los íconos, con todo el ancho disponible (en vez de angostar el texto, que lo partía en varias líneas feas).
+- **"Mi perfil"/"Admin" en mobile**: no entraban ni en la píldora ni como íconos sueltos arriba (se solapaban con el título). Quedaron dentro del menú de Configuración, a un toque, solo en mobile — en desktop siguen en el Sidebar.
 - **Perfil rediseñado + "Mi perfil" en el nav**: el perfil pasó de "nombre + lista" a un muro cronológico (reflexiones y citas mezcladas por fecha, estilo nota al margen) con encabezado y estadísticas. Se agregó acceso visible en Sidebar/BottomNav (antes solo estaba escondido en Configuración) y edición de nombre inline directo en el perfil, con lápiz junto al nombre.
 - **Bug de UI: el perfil se veía centrado distinto al resto de la app.** Causa: un `mx-auto` angostando la columna independiente del layout estándar. Fix: mismo ancho de `<main>` que usan todas las páginas, columna de lectura anclada a la izquierda.
 - **Saludo con nombre**: "Buenas tardes, {nombre}" en Home, usando un hook compartido (`useMyProfile`) que también sincroniza Configuración y el perfil en tiempo real.
