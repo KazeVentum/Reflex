@@ -6,9 +6,16 @@ import type { Book } from "@/types";
 const supabase = createClient();
 
 async function fetchBooks(): Promise<Book[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+  // Explicit user_id filter, not just RLS: RLS also grants read access to
+  // OTHER users' books that have a public reflection/quote (for the feed),
+  // so relying on RLS alone here would leak other people's public books
+  // into "my" book list.
   const { data } = await supabase
     .from("books")
     .select("*")
+    .eq("user_id", user.id)
     .order("title", { ascending: true });
   return data ?? [];
 }

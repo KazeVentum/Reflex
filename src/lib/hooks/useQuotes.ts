@@ -15,9 +15,15 @@ function makeKey(filters: Filters) {
 }
 
 async function fetchQuotes([, bookId, tag]: [string, string, string]): Promise<Quote[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+  // Explicit user_id filter, not just RLS: RLS also grants read access to
+  // OTHER users' public quotes (for the feed), so relying on RLS alone
+  // here would leak other people's public quotes into "my" library.
   let query = supabase
     .from("quotes")
     .select("*, books(id, title, author)")
+    .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
   if (bookId) query = query.eq("book_id", bookId);
