@@ -1,20 +1,26 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Settings } from "lucide-react";
+import Link from "next/link";
+import { Settings, Link2 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 const PALETTE_KEY = "palette";
+const supabase = createClient();
 
 function applyPalette(pink: boolean) {
   document.documentElement.classList.toggle("pink", pink);
 }
 
 /** Menú de configuración de la app (engranaje arriba a la derecha, junto al
- *  toggle de tema). Por ahora contiene un único ajuste: la paleta "Rosa". */
+ *  toggle de tema). Contiene la paleta "Rosa" y el link al perfil/muro
+ *  propio — cualquier usuario puede compartir el suyo, esté o no
+ *  destacado por un admin (destacado solo cura el índice /feed). */
 export function SettingsMenu() {
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const [pink, setPink] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -22,6 +28,7 @@ export function SettingsMenu() {
     setPink(stored);
     applyPalette(stored);
     setMounted(true);
+    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
   }, []);
 
   useEffect(() => {
@@ -111,6 +118,17 @@ export function SettingsMenu() {
                 />
               </button>
             </div>
+
+            {userId && (
+              <Link
+                href={`/feed/${userId}`}
+                onClick={() => setOpen(false)}
+                className="mt-4 pt-4 flex items-center gap-2.5 border-t border-[var(--border)] text-sm text-[var(--muted)] hover:text-[var(--fg)] transition-colors"
+              >
+                <Link2 size={15} strokeWidth={1.8} />
+                Mi perfil público
+              </Link>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

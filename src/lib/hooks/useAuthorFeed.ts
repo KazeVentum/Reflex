@@ -7,7 +7,11 @@ const supabase = createClient();
 
 async function fetchAuthorFeed(authorId: string) {
   const [{ data: profile }, { data: reflections }, { data: quotes }] = await Promise.all([
-    supabase.from("profiles").select("*").eq("id", authorId).eq("is_featured", true).maybeSingle(),
+    // No .eq("is_featured", true) here on purpose: a profile is visible if
+    // it has public content (public_authors_select_authenticated RLS
+    // policy), regardless of featured status — featured only curates the
+    // /feed index, not an individual's own profile/wall.
+    supabase.from("profiles").select("*").eq("id", authorId).maybeSingle(),
     supabase
       .from("reflections")
       .select("*, books(id, title, author), profiles!inner(id, display_name)")

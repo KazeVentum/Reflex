@@ -93,6 +93,17 @@ CREATE POLICY "admins_update_all_profiles" ON profiles FOR UPDATE TO authenticat
 -- columna, así que una policy "propia fila" para UPDATE dejaría a
 -- cualquier usuario poner su propio is_admin/is_featured en true.
 
+-- Un perfil es visible para cualquier usuario autenticado si ese usuario
+-- tiene al menos una reflexión/cita pública — "destacado" solo cura el
+-- índice /feed, no controla si el perfil/muro de alguien es visible.
+-- Unidireccional (profiles lee reflections/quotes; esas tablas ya no leen
+-- profiles en absoluto), así que no hay riesgo de recursión acá.
+CREATE POLICY "public_authors_select_authenticated" ON profiles FOR SELECT TO authenticated
+  USING (
+    EXISTS (SELECT 1 FROM reflections r WHERE r.user_id = profiles.id AND r.is_public = true)
+    OR EXISTS (SELECT 1 FROM quotes q WHERE q.user_id = profiles.id AND q.is_public = true)
+  );
+
 -- ─────────────────────────────────────────
 -- TABLA: books
 -- ─────────────────────────────────────────
@@ -144,13 +155,11 @@ CREATE POLICY "users_own_reflections_insert" ON reflections FOR INSERT WITH CHEC
 CREATE POLICY "users_own_reflections_update" ON reflections FOR UPDATE USING ((SELECT auth.uid()) = user_id);
 CREATE POLICY "users_own_reflections_delete" ON reflections FOR DELETE USING ((SELECT auth.uid()) = user_id);
 
--- Contenido de un usuario is_featured que él mismo marcó is_public: visible
--- para cualquier usuario autenticado (feed de autores destacados).
-CREATE POLICY "featured_public_reflections_select_authenticated" ON reflections FOR SELECT TO authenticated
-  USING (
-    is_public = true
-    AND EXISTS (SELECT 1 FROM profiles p WHERE p.id = reflections.user_id AND p.is_featured = true)
-  );
+-- Cualquier reflexión marcada is_public es visible para cualquier usuario
+-- autenticado, sin importar si el autor está destacado — "destacado" solo
+-- cura el índice /feed, no la visibilidad del perfil/muro de cada usuario.
+CREATE POLICY "public_reflections_select_authenticated" ON reflections FOR SELECT TO authenticated
+  USING (is_public = true);
 
 -- ─────────────────────────────────────────
 -- TABLA: quotes
@@ -179,11 +188,8 @@ CREATE POLICY "users_own_quotes_insert" ON quotes FOR INSERT WITH CHECK ((SELECT
 CREATE POLICY "users_own_quotes_update" ON quotes FOR UPDATE USING ((SELECT auth.uid()) = user_id);
 CREATE POLICY "users_own_quotes_delete" ON quotes FOR DELETE USING ((SELECT auth.uid()) = user_id);
 
-CREATE POLICY "featured_public_quotes_select_authenticated" ON quotes FOR SELECT TO authenticated
-  USING (
-    is_public = true
-    AND EXISTS (SELECT 1 FROM profiles p WHERE p.id = quotes.user_id AND p.is_featured = true)
-  );
+CREATE POLICY "public_quotes_select_authenticated" ON quotes FOR SELECT TO authenticated
+  USING (is_public = true);
 
 -- Segunda FK directa a profiles(id) (además de la que ya va a auth.users):
 -- el embedding de PostgREST (.select("*, profiles(...)")) necesita una FK
