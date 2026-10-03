@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useRecorder } from "@/lib/hooks/useRecorder";
 import { useBooks } from "@/lib/hooks/useBooks";
 import { useQuotes } from "@/lib/hooks/useQuotes";
+import { useMyProfile } from "@/lib/hooks/useMyProfile";
 import { ReflectionForm } from "@/components/ReflectionForm";
 import { BottomNav } from "@/components/BottomNav";
 import { RecordButton } from "@/components/RecordButton";
@@ -94,6 +95,7 @@ export default function Home() {
   const { updateCurrentPage } = useBooks();
   const router = useRouter();
   const { quotes } = useQuotes();
+  const { profile } = useMyProfile();
   const [sheetBook, setSheetBook] = useState<Book | null>(null);
 
   const combinedQuotes = useMemo(() => {
@@ -144,7 +146,7 @@ export default function Home() {
       >
         <p className="text-xs uppercase tracking-widest text-[var(--muted)] mb-0.5">{getDate()}</p>
         <h1 className="font-[family-name:var(--font-fraunces)] text-3xl md:text-4xl text-[var(--fg)]">
-          {getGreeting()}
+          {getGreeting()}{profile?.display_name ? `, ${profile.display_name}` : ""}
         </h1>
       </motion.div>
 

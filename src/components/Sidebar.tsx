@@ -1,12 +1,14 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Mic, BookOpen, Library, Users, ShieldCheck } from "lucide-react";
+import { Mic, BookOpen, Library, Users, User, ShieldCheck } from "lucide-react";
 import { useIsAdmin } from "@/lib/hooks/useIsAdmin";
+import { useMyProfile } from "@/lib/hooks/useMyProfile";
 
 export function Sidebar() {
   const pathname = usePathname();
   const { isAdmin } = useIsAdmin();
+  const { profile } = useMyProfile();
 
   const navItem = (href: string, icon: React.ReactNode, label: string) => {
     const active = pathname === href;
@@ -35,6 +37,7 @@ export function Sidebar() {
         {navItem("/library", <Library size={20} strokeWidth={1.8} />, "Biblioteca")}
         {navItem("/books", <BookOpen size={20} strokeWidth={1.8} />, "Libros")}
         {navItem("/feed", <Users size={20} strokeWidth={1.8} />, "Feed")}
+        {profile && navItem(`/feed/${profile.id}`, <User size={20} strokeWidth={1.8} />, "Mi perfil")}
         {isAdmin && navItem("/admin/users", <ShieldCheck size={20} strokeWidth={1.8} />, "Admin")}
       </nav>
     </aside>

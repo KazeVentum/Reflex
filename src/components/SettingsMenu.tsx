@@ -1,30 +1,22 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Link from "next/link";
-import { Settings, Link2 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { Settings } from "lucide-react";
 
 const PALETTE_KEY = "palette";
-const supabase = createClient();
 
 function applyPalette(pink: boolean) {
   document.documentElement.classList.toggle("pink", pink);
 }
 
-/** Menú de configuración de la app (engranaje arriba a la derecha, junto al
- *  toggle de tema). Contiene la paleta "Rosa" y el link al perfil/muro
- *  propio — cualquier usuario puede compartir el suyo, esté o no
- *  destacado por un admin (destacado solo cura el índice /feed). */
+/** Menú de preferencias de la app (engranaje arriba a la derecha, junto al
+ *  toggle de tema). Solo ajustes de la app — identidad pública (nombre,
+ *  perfil) vive en "Mi perfil" en la nav, no acá, para no tener dos
+ *  lugares que hacen lo mismo. */
 export function SettingsMenu() {
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const [pink, setPink] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [displayName, setDisplayName] = useState("");
-  const [savingName, setSavingName] = useState(false);
-  const [nameError, setNameError] = useState<string | null>(null);
-  const [nameSaved, setNameSaved] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -32,34 +24,7 @@ export function SettingsMenu() {
     setPink(stored);
     applyPalette(stored);
     setMounted(true);
-    supabase.auth.getUser().then(async ({ data }) => {
-      const user = data.user;
-      if (!user) return;
-      setUserId(user.id);
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("display_name")
-        .eq("id", user.id)
-        .maybeSingle();
-      setDisplayName(profile?.display_name ?? "");
-    });
   }, []);
-
-  const handleSaveName = async () => {
-    const trimmed = displayName.trim();
-    if (!trimmed) return;
-    setSavingName(true);
-    setNameError(null);
-    setNameSaved(false);
-    const { error } = await supabase.rpc("update_my_display_name", { new_name: trimmed });
-    setSavingName(false);
-    if (error) {
-      setNameError("No se pudo guardar. Probá con un nombre más corto.");
-      return;
-    }
-    setNameSaved(true);
-    window.setTimeout(() => setNameSaved(false), 2000);
-  };
 
   useEffect(() => {
     if (!open) return;
@@ -148,46 +113,6 @@ export function SettingsMenu() {
                 />
               </button>
             </div>
-
-            {userId && (
-              <div className="mt-4 pt-4 border-t border-[var(--border)] flex flex-col gap-2">
-                <label htmlFor="settings-display-name" className="text-sm text-[var(--fg)]">
-                  Nombre público
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    id="settings-display-name"
-                    type="text"
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    maxLength={40}
-                    placeholder="Tu nombre"
-                    className="flex-1 min-w-0 px-3 py-2 text-sm rounded-xl border border-[var(--border)] bg-transparent text-[var(--fg)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--accent)]"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleSaveName}
-                    disabled={savingName || !displayName.trim()}
-                    className="px-3 py-2 text-xs font-medium rounded-xl bg-[var(--accent)] text-[var(--bg)] hover:opacity-85 disabled:opacity-50 transition-opacity"
-                  >
-                    {savingName ? "..." : "Guardar"}
-                  </button>
-                </div>
-                {nameError && <p className="text-xs text-[var(--danger)]">{nameError}</p>}
-                {nameSaved && <p className="text-xs text-[var(--muted)]">Guardado.</p>}
-              </div>
-            )}
-
-            {userId && (
-              <Link
-                href={`/feed/${userId}`}
-                onClick={() => setOpen(false)}
-                className="mt-4 pt-4 flex items-center gap-2.5 border-t border-[var(--border)] text-sm text-[var(--muted)] hover:text-[var(--fg)] transition-colors"
-              >
-                <Link2 size={15} strokeWidth={1.8} />
-                Mi perfil público
-              </Link>
-            )}
           </motion.div>
         )}
       </AnimatePresence>

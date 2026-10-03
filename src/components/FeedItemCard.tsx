@@ -7,23 +7,33 @@ type Props =
   | { type: "reflection"; item: FeedReflection }
   | { type: "quote"; item: FeedQuote };
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("es", { day: "numeric", month: "short", year: "numeric" });
+function formatRelative(dateStr: string): string {
+  const date = new Date(dateStr);
+  const diffDays = Math.floor((Date.now() - date.getTime()) / 86_400_000);
+  if (diffDays <= 0) return "hoy";
+  if (diffDays === 1) return "ayer";
+  if (diffDays < 7) return `hace ${diffDays} días`;
+  return date.toLocaleDateString("es", { day: "numeric", month: "short" });
 }
 
+// Anotación al margen, no "card": una barra vertical acompaña cada entrada
+// como si fuera una nota escrita al margen de un libro — coherente con que
+// esto es, literalmente, un diario de lectura. Separador entre entradas en
+// vez de caja con borde + sombra repetida en cada una.
 export function FeedItemCard({ type, item }: Props) {
   return (
-    <div className="border border-[var(--border)] rounded-2xl p-4 flex flex-col gap-3">
-      <div className="flex items-center justify-between text-xs text-[var(--muted)]">
-        <span>{formatDate(item.created_at)}</span>
-        {item.page_number && <span>p. {item.page_number}</span>}
+    <article className="border-l-2 border-[var(--border)] pl-5 py-6 border-b border-b-[var(--border)] last:border-b-0 flex flex-col gap-3">
+      <div className="flex items-center gap-2 text-xs text-[var(--muted)]">
+        <span>{formatRelative(item.created_at)}</span>
+        {item.books && <span className="truncate">{item.books.title}</span>}
+        {item.page_number && <span className="shrink-0">p. {item.page_number}</span>}
       </div>
 
       {type === "reflection" ? (
         <>
           <div className="flex items-center gap-2 text-[var(--fg)]">
-            <Mic size={16} strokeWidth={1.8} />
-            <p className="font-[family-name:var(--font-fraunces)]">
+            <Mic size={16} strokeWidth={1.8} className="text-[var(--accent)] shrink-0" />
+            <p className="font-[family-name:var(--font-fraunces)] text-lg">
               {item.title ?? "Reflexión de voz"}
             </p>
           </div>
@@ -31,9 +41,14 @@ export function FeedItemCard({ type, item }: Props) {
           {item.notes && <p className="text-sm text-[var(--muted)] leading-relaxed">{item.notes}</p>}
         </>
       ) : (
-        <p className="font-[family-name:var(--font-fraunces)] italic leading-relaxed text-[var(--fg)]">
-          {item.quote_text}
-        </p>
+        <div>
+          <p className="font-[family-name:var(--font-fraunces)] text-[var(--accent)] text-2xl leading-none mb-2 select-none">
+            ❝
+          </p>
+          <p className="font-[family-name:var(--font-fraunces)] italic text-lg leading-relaxed text-[var(--fg)]">
+            {item.quote_text}
+          </p>
+        </div>
       )}
 
       {item.tags.length > 0 && (
@@ -45,6 +60,6 @@ export function FeedItemCard({ type, item }: Props) {
           ))}
         </div>
       )}
-    </div>
+    </article>
   );
 }

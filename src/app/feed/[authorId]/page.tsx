@@ -1,42 +1,67 @@
 "use client";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { Feather } from "lucide-react";
+import { Feather, Pencil } from "lucide-react";
 import { Sidebar } from "@/components/Sidebar";
 import { BottomNav } from "@/components/BottomNav";
 import { useAuthorFeed } from "@/lib/hooks/useAuthorFeed";
+import { useMyProfile } from "@/lib/hooks/useMyProfile";
 import { FeedItemCard } from "@/components/FeedItemCard";
-import type { FeedReflection, FeedQuote, Book } from "@/types";
+import type { FeedReflection, FeedQuote } from "@/types";
 
-type BookRef = Pick<Book, "id" | "title" | "author">;
-
-interface BookGroup {
-  book: BookRef | null;
-  reflections: FeedReflection[];
-  quotes: FeedQuote[];
-}
+type Entry =
+  | { type: "reflection"; item: FeedReflection }
+  | { type: "quote"; item: FeedQuote };
 
 export default function AuthorFeedPage() {
   const { authorId } = useParams<{ authorId: string }>();
   const { profile, reflections, quotes, loading } = useAuthorFeed(authorId);
+  const { profile: myProfile, updateDisplayName } = useMyProfile();
+  const isOwnProfile = !!myProfile && myProfile.id === authorId;
 
-  const groups = useMemo(() => {
-    const byBook = new Map<string, BookGroup>();
-    const keyOf = (b?: BookRef) => b?.id ?? "sin-libro";
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  const [savingName, setSavingName] = useState(false);
 
-    for (const r of reflections) {
-      const k = keyOf(r.books);
-      if (!byBook.has(k)) byBook.set(k, { book: r.books ?? null, reflections: [], quotes: [] });
-      byBook.get(k)!.reflections.push(r);
-    }
-    for (const q of quotes) {
-      const k = keyOf(q.books);
-      if (!byBook.has(k)) byBook.set(k, { book: q.books ?? null, reflections: [], quotes: [] });
-      byBook.get(k)!.quotes.push(q);
-    }
-    return Array.from(byBook.values());
+  useEffect(() => {
+    setNameDraft(profile?.display_name ?? "");
+  }, [profile?.display_name]);
+
+  const handleSaveName = async () => {
+    const trimmed = nameDraft.trim();
+    if (!trimmed) return;
+    setSavingName(true);
+    const ok = await updateDisplayName(trimmed);
+    setSavingName(false);
+    if (ok) setEditingName(false);
+  };
+
+  // Un muro cronológico único, no agrupado por libro: el libro queda como
+  // una etiqueta dentro de cada entrada (ver FeedItemCard), no como
+  // encabezado de sección — así se lee como el perfil de una persona, no
+  // como un índice de sus libros.
+  const entries = useMemo<Entry[]>(() => {
+    const combined: Entry[] = [
+      ...reflections.map((item): Entry => ({ type: "reflection", item })),
+      ...quotes.map((item): Entry => ({ type: "quote", item })),
+    ];
+    return combined.sort(
+      (a, b) => new Date(b.item.created_at).getTime() - new Date(a.item.created_at).getTime()
+    );
   }, [reflections, quotes]);
+
+  const bookCount = useMemo(() => {
+    const ids = new Set<string>();
+    for (const e of entries) if (e.item.books) ids.add(e.item.books.id);
+    return ids.size;
+  }, [entries]);
+
+  const statParts = [
+    reflections.length > 0 && `${reflections.length} ${reflections.length === 1 ? "reflexión" : "reflexiones"}`,
+    quotes.length > 0 && `${quotes.length} ${quotes.length === 1 ? "cita" : "citas"}`,
+    bookCount > 0 && `${bookCount} ${bookCount === 1 ? "libro" : "libros"}`,
+  ].filter(Boolean);
 
   return (
     <>
@@ -51,47 +76,82 @@ export default function AuthorFeedPage() {
         )}
 
         {!loading && profile && (
-          <>
-            <motion.h1
-              className="flex items-center gap-2 font-[family-name:var(--font-fraunces)] text-2xl md:text-3xl text-[var(--fg)] mb-6 md:mb-8"
+          // max-w acá, no en <main>: así el bloque queda anclado a la
+          // izquierda igual que el resto de la app (todas las páginas usan
+          // el mismo <main> ancho + sidebar), en vez de flotar centrado con
+          // un hueco asimétrico a la derecha.
+          <div className="max-w-2xl">
+            <motion.div
+              className="border-l-4 border-[var(--accent)] pl-5 md:pl-6 pb-8 mb-8 border-b border-b-[var(--border)]"
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
             >
-              {profile.display_name}
-              {profile.is_verified && (
-                <Feather size={20} strokeWidth={1.8} className="text-[var(--accent)]" />
+              {editingName ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={nameDraft}
+                    onChange={(e) => setNameDraft(e.target.value)}
+                    maxLength={40}
+                    autoFocus
+                    className="flex-1 min-w-0 font-[family-name:var(--font-fraunces)] text-3xl md:text-5xl text-[var(--fg)] bg-transparent border-b border-[var(--border)] focus:outline-none focus:border-[var(--accent)]"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSaveName}
+                    disabled={savingName || !nameDraft.trim()}
+                    className="px-3 py-2 text-xs font-medium rounded-xl bg-[var(--accent)] text-[var(--bg)] hover:opacity-85 disabled:opacity-50 transition-opacity"
+                  >
+                    {savingName ? "..." : "Guardar"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setEditingName(false); setNameDraft(profile.display_name ?? ""); }}
+                    className="px-3 py-2 text-xs rounded-xl border border-[var(--border)] text-[var(--muted)] hover:text-[var(--fg)] hover:border-[var(--accent)] transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              ) : (
+                <h1 className="flex items-center gap-2.5 font-[family-name:var(--font-fraunces)] text-3xl md:text-5xl text-[var(--fg)]">
+                  {profile.display_name}
+                  {profile.is_verified && (
+                    <Feather size={24} strokeWidth={1.8} className="text-[var(--accent)] shrink-0" />
+                  )}
+                  {isOwnProfile && (
+                    <button
+                      type="button"
+                      onClick={() => setEditingName(true)}
+                      aria-label="Editar tu nombre público"
+                      className="p-1.5 rounded-full text-[var(--muted)] hover:text-[var(--accent)] hover:bg-[var(--surface)] transition-colors"
+                    >
+                      <Pencil size={16} strokeWidth={1.8} />
+                    </button>
+                  )}
+                </h1>
               )}
-            </motion.h1>
+              {statParts.length > 0 && (
+                <p className="text-sm text-[var(--muted)] mt-2">{statParts.join(" · ")}</p>
+              )}
+            </motion.div>
 
-            {groups.length === 0 && (
+            {entries.length === 0 && (
               <p className="text-sm text-[var(--muted)] text-center py-12">
                 Sin contenido público todavía.
               </p>
             )}
 
-            <div className="flex flex-col gap-8">
-              {groups.map((g) => (
-                <section key={g.book?.id ?? "sin-libro"}>
-                  <p className="text-xs uppercase tracking-widest text-[var(--muted)] mb-3">
-                    {g.book ? `${g.book.title}${g.book.author ? ` — ${g.book.author}` : ""}` : "Sin libro asociado"}
-                  </p>
-                  <div className="flex flex-col gap-3.5 md:columns-2 md:gap-4 xl:columns-3">
-                    {g.reflections.map((r) => (
-                      <div key={r.id} className="md:mb-4 md:break-inside-avoid">
-                        <FeedItemCard type="reflection" item={r} />
-                      </div>
-                    ))}
-                    {g.quotes.map((q) => (
-                      <div key={q.id} className="md:mb-4 md:break-inside-avoid">
-                        <FeedItemCard type="quote" item={q} />
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              ))}
+            <div className="flex flex-col">
+              {entries.map((e) =>
+                e.type === "reflection" ? (
+                  <FeedItemCard key={e.item.id} type="reflection" item={e.item} />
+                ) : (
+                  <FeedItemCard key={e.item.id} type="quote" item={e.item} />
+                )
+              )}
             </div>
-          </>
+          </div>
         )}
       </main>
       <BottomNav />
