@@ -280,7 +280,7 @@ CREATE POLICY "users_own_reading_logs_update" ON reading_logs FOR UPDATE USING (
 CREATE POLICY "users_own_reading_logs_delete" ON reading_logs FOR DELETE USING ((SELECT auth.uid()) = user_id);
 
 -- ─────────────────────────────────────────
--- FUNCIONES: log_reading / upsert_reading_log
+-- FUNCIÓN: log_reading
 -- ─────────────────────────────────────────
 CREATE OR REPLACE FUNCTION log_reading(
   p_book_id    UUID,
@@ -330,32 +330,6 @@ BEGIN
 END;
 $$;
 
--- upsert_reading_log se mantiene solo por compatibilidad con la versión
--- desplegada, pero ahora ignora p_user_id y usa auth.uid(). Eliminarla
--- cuando ya no haya clientes viejos llamándola.
-CREATE OR REPLACE FUNCTION upsert_reading_log(
-  p_user_id    UUID,
-  p_book_id    UUID,
-  p_pages_read INTEGER,
-  p_logged_at  DATE
-) RETURNS void
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  v_user UUID := auth.uid();
-BEGIN
-  IF v_user IS NULL OR NOT EXISTS (SELECT 1 FROM books WHERE id = p_book_id AND user_id = v_user) THEN
-    RETURN;
-  END IF;
-  INSERT INTO reading_logs (user_id, book_id, pages_read, logged_at)
-  VALUES (v_user, p_book_id, p_pages_read, p_logged_at)
-  ON CONFLICT (user_id, book_id, logged_at)
-  DO UPDATE SET pages_read = reading_logs.pages_read + EXCLUDED.pages_read;
-END;
-$$;
 
 -- Ejecutar aparte (en el mismo script no siempre queda aplicado):
 -- REVOKE EXECUTE ON FUNCTION log_reading(UUID, INTEGER, INTEGER, DATE) FROM anon, public;
--- REVOKE EXECUTE ON FUNCTION upsert_reading_log(UUID, UUID, INTEGER, DATE) FROM anon, public;

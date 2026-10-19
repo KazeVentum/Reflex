@@ -35,6 +35,7 @@ Aplicar en orden sobre una base ya existente:
 | `migration_add_verified_and_display_name_update.sql` | Agrega `is_verified` a `profiles` y la función `update_my_display_name()` (`SECURITY DEFINER`, acotada a esa columna) para que cada usuario cambie su propio nombre público |
 | `migration_written_reflections.sql` | Reflexiones escritas: `audio_path` pasa a ser opcional (el texto vive en `notes`) y un `CHECK` exige audio o texto |
 | `migration_reading_history.sql` | Agrega `start_page`/`end_page` a `reading_logs` (historial "de la 187 a la 230") y la función `log_reading()`, que toma el usuario de `auth.uid()`. Corrige `upsert_reading_log`, que aceptaba un `p_user_id` arbitrario del cliente (se mantiene solo por compatibilidad) |
+| `migration_drop_upsert_reading_log.sql` | Elimina `upsert_reading_log` (obsoleta) una vez desplegado el cliente que usa `log_reading()` |
 
 Después de aplicar `migration_add_profiles_and_roles.sql`, otorgate admin a mano (no hay UI para el primer admin):
 ```sql
@@ -116,9 +117,6 @@ El chequeo de admin en las policies usa la función `is_admin()` (`SECURITY DEFI
 log_reading(p_book_id, p_start_page, p_end_page, p_logged_at)
 ```
 Registra que se leyó de `p_start_page` a `p_end_page`. Toma el usuario de `auth.uid()` y verifica que el libro le pertenezca. Si ya existe un registro para ese libro/día, suma las páginas, conserva la `start_page` del primero y mueve la `end_page`. Si `p_end_page < p_start_page` (corrección a la baja), recorta el registro de ese día y lo borra si queda en 0. `p_logged_at` es la fecha **local** del usuario.
-
-### Función: `upsert_reading_log` (obsoleta)
-Versión anterior, sin páginas de inicio/fin. Se mantiene solo para clientes viejos; ignora `p_user_id` y usa `auth.uid()`. Eliminar cuando nadie la llame.
 
 ## Storage
 

@@ -21,7 +21,7 @@ Next.js 16.2.6 (App Router, Turbopack) · React 19.2.4 · TypeScript · Tailwind
 - `src/components/` — presentational + form components. Notable ones: `Sidebar` (desktop nav, `hidden md:flex`) / `BottomNav` (mobile nav, `md:hidden`); `ConfirmDialog` (use for *every* destructive action instead of `window.confirm`); `PageUpdateSheet` / `QuoteEditSheet` (bottom sheet on mobile, centered modal on desktop via `useIsDesktop()`); `GlobalUI` (top-right cluster: logout + theme toggle — `fixed` on desktop, `absolute` on mobile so it scrolls away instead of covering content; pages need `pt-20` on mobile to clear it) and `SettingsMenu` (the gear in that cluster — app config popover, currently just the "Rosa" palette toggle).
 - `src/types/index.ts` — single flat file with all shared interfaces.
 - `src/lib/date.ts` — `toLocalDateStr()`. Reading-log dates must be the user's **local** date, never `toISOString()` (UTC shifts evening reads to the next day).
-- Reflections may have no audio (`audio_path` null = written reflection, text in `notes`) — anything touching `audio_path` must handle null. Reading progress is logged via the `log_reading()` RPC (start/end page, uses `auth.uid()`); `upsert_reading_log` is deprecated and kept only for older deployed clients.
+- Reflections may have no audio (`audio_path` null = written reflection, text in `notes`) — anything touching `audio_path` must handle null. Reading progress is logged via the `log_reading()` RPC (start/end page, uses `auth.uid()`).
 - `supabase/` — `schema.sql` (full schema) + incremental `migration_*.sql` files applied by hand in the Supabase SQL editor (no migration tool). `supabase/README.md` documents the current schema in Spanish and must stay in sync when adding migrations.
 
 ## Conventions
