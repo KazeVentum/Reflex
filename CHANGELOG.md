@@ -16,6 +16,7 @@ Resumen breve de cambios y problemas resueltos en este proyecto (sesión de trab
 - **Bug: lecturas de la noche quedaban en el día siguiente.** La fecha se calculaba en UTC (`toISOString`); en Colombia (UTC-5), todo lo registrado después de las 7 p. m. caía en mañana. Fix: fecha local (`src/lib/date.ts`).
 - **UX general**: el formulario de reflexión ahora es más ancho y alineado con el resto de páginas; se corrigió el botón "+" de libro que se salía de la columna; el Feed vacío ahora explica qué hacer; la biblioteca tiene botones para grabar o escribir.
 - **Bug mobile: los botones flotantes (configuración, salir, tema) tapaban "Agregar libro"** y, al hacer scroll, el contenido. Fix: más espacio arriba en las páginas que lo necesitaban, y en móvil esos botones ahora se van con el scroll.
+- **Bug UI: las tarjetas de reflexión en la biblioteca se veían apretadas** y el título se cortaba a una línea ("Soltar es retomar el contr…"); con títulos largos, el número de página quedaba oculto. Fix: el título usa hasta 2 líneas, la página pasa a la línea del libro (*Libro · p. 43*) y nunca se recorta, y la pestaña Reflexiones usa 2 columnas en escritorio (3 solo en pantallas muy anchas) en vez de 3–4. Citas mantiene su grilla más densa.
 - README reescrito con funcionalidades, capturas actuales (`docs/screenshots/`) y guía de desarrollo.
 
 ## 2026-10-03

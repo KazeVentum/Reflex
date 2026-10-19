@@ -192,7 +192,7 @@ export default function LibraryPage() {
           )}
 
           {!writing && (
-          <div className="flex flex-col gap-3.5 md:block md:columns-2 md:gap-4 xl:columns-3 2xl:columns-4">
+          <div className={`flex flex-col gap-3.5 md:block md:columns-2 md:gap-4 ${activeTab === "reflections" ? "2xl:columns-3" : "xl:columns-3 2xl:columns-4"}`}>
             {!loading && activeTab === "reflections" && reflections.map((r) => (
               <div key={r.id} className="md:mb-4 md:break-inside-avoid">
                 <ReflectionCard reflection={r} onDelete={deleteReflection} onUpdate={updateReflection} />

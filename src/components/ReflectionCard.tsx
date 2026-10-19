@@ -97,14 +97,19 @@ export function ReflectionCard({ reflection, onDelete, onUpdate }: Props) {
             <span className="tabular-nums">{formatDuration(reflection.duration_seconds)}</span>
           )}
         </div>
-        <p className="text-[var(--fg)] font-[family-name:var(--font-fraunces)] truncate">
+        <p className="text-[var(--fg)] font-[family-name:var(--font-fraunces)] text-lg leading-snug line-clamp-2 break-words">
           {reflection.title ?? <span className="text-[var(--muted)] italic">{reflection.books?.title ?? "Sin título"}</span>}
-          {reflection.page_number && (
-            <span className="text-[var(--muted)] text-sm ml-2">p. {reflection.page_number}</span>
-          )}
         </p>
-        {reflection.title && reflection.books?.title && (
-          <p className="text-xs text-[var(--muted)] truncate">{reflection.books.title}</p>
+        {((reflection.title && reflection.books?.title) || reflection.page_number) && (
+          <p className="text-xs text-[var(--muted)] flex items-baseline gap-1.5 min-w-0">
+            {reflection.title && reflection.books?.title && (
+              <span className="truncate">{reflection.books.title}</span>
+            )}
+            {reflection.title && reflection.books?.title && reflection.page_number && <span aria-hidden>·</span>}
+            {reflection.page_number && (
+              <span className="shrink-0 tabular-nums">p. {reflection.page_number}</span>
+            )}
+          </p>
         )}
         {isWritten && reflection.notes && !expanded && (
           <p className="text-sm text-[var(--muted)] leading-relaxed line-clamp-3 mt-0.5">{reflection.notes}</p>
