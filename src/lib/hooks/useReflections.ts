@@ -41,8 +41,8 @@ export function useReflections(filters: Filters = {}) {
     { revalidateOnFocus: false }
   );
 
-  const deleteReflection = async (id: string, audioPath: string) => {
-    await supabase.storage.from("reflections").remove([audioPath]);
+  const deleteReflection = async (id: string, audioPath: string | null) => {
+    if (audioPath) await supabase.storage.from("reflections").remove([audioPath]);
     await supabase.from("reflections").delete().eq("id", id);
     mutate(reflections.filter((r) => r.id !== id), false);
   };

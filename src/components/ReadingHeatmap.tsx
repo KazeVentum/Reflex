@@ -1,20 +1,20 @@
 "use client";
-import { useState, useMemo } from "react";
-import { ChevronLeft, ChevronRight, Flame } from "lucide-react";
+import { useMemo } from "react";
+import { Flame } from "lucide-react";
 import type { DailyActivity } from "@/types";
+import { toLocalDateStr } from "@/lib/date";
+import { useIsDesktop } from "@/lib/hooks/useIsDesktop";
 
 interface ReadingHeatmapProps {
   logs: DailyActivity[];
+  selectedDate?: string | null;
+  onSelectDate?: (date: string | null) => void;
 }
 
-const DAY_LABELS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
-
-function toLocalDateStr(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
+// En mobile caben ~4 meses con celdas tocables sin scroll horizontal.
+const WEEKS_DESKTOP = 26;
+const WEEKS_MOBILE = 15;
+const DAY_LABELS = ["L", "", "X", "", "V", "", "D"];
 
 function getMondayOf(date: Date): Date {
   const d = new Date(date);
@@ -52,8 +52,17 @@ function calcStreak(logs: DailyActivity[]): number {
   return streak;
 }
 
-export function ReadingHeatmap({ logs }: ReadingHeatmapProps) {
-  const [weekOffset, setWeekOffset] = useState(0);
+function Stat({ value, label }: { value: React.ReactNode; label: string }) {
+  return (
+    <div className="flex flex-col">
+      <span className="font-[family-name:var(--font-fraunces)] text-2xl text-[var(--fg)] leading-none">{value}</span>
+      <span className="text-[10px] uppercase tracking-widest text-[var(--muted)] mt-1.5">{label}</span>
+    </div>
+  );
+}
+
+export function ReadingHeatmap({ logs, selectedDate, onSelectDate }: ReadingHeatmapProps) {
+  const weekCount = useIsDesktop() ? WEEKS_DESKTOP : WEEKS_MOBILE;
 
   const activityMap = useMemo(() => {
     const map = new Map<string, number>();
@@ -64,85 +73,105 @@ export function ReadingHeatmap({ logs }: ReadingHeatmapProps) {
   const maxPages = useMemo(() => Math.max(0, ...logs.map((l) => l.count)), [logs]);
   const streak = useMemo(() => calcStreak(logs), [logs]);
 
-  const weekDays = useMemo(() => {
-    const today = new Date();
-    const monday = getMondayOf(today);
-    monday.setDate(monday.getDate() + weekOffset * 7);
+  const { pagesThisMonth, daysThisMonth } = useMemo(() => {
+    const prefix = toLocalDateStr(new Date()).slice(0, 7);
+    let pages = 0;
+    let days = 0;
+    for (const l of logs) {
+      if (l.date.startsWith(prefix) && l.count > 0) { pages += l.count; days++; }
+    }
+    return { pagesThisMonth: pages, daysThisMonth: days };
+  }, [logs]);
 
-    return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(monday);
-      d.setDate(d.getDate() + i);
-      const dateStr = toLocalDateStr(d);
-      const pages = activityMap.get(dateStr) ?? 0;
-      const isToday = dateStr === toLocalDateStr(new Date());
-      const isFuture = d > new Date();
-      return { dateStr, pages, isToday, isFuture, label: d.getDate() };
+  // Columnas = semanas (lunes a domingo), la última es la semana actual.
+  const weeks = useMemo(() => {
+    const todayStr = toLocalDateStr(new Date());
+    const start = getMondayOf(new Date());
+    start.setDate(start.getDate() - (weekCount - 1) * 7);
+
+    return Array.from({ length: weekCount }, (_, w) => {
+      const days = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(start);
+        d.setDate(d.getDate() + w * 7 + i);
+        const dateStr = toLocalDateStr(d);
+        return {
+          dateStr,
+          pages: activityMap.get(dateStr) ?? 0,
+          isToday: dateStr === todayStr,
+          isFuture: dateStr > todayStr,
+        };
+      });
+      const first = new Date(days[0].dateStr + "T00:00:00");
+      // Etiqueta de mes en la primera semana que contiene un día 1–7.
+      const monthLabel = first.getDate() <= 7
+        ? first.toLocaleDateString("es", { month: "short" }).replace(".", "")
+        : "";
+      return { days, monthLabel };
     });
-  }, [weekOffset, activityMap]);
+  }, [activityMap, weekCount]);
 
-  const weekLabel = useMemo(() => {
-    if (weekOffset === 0) return "Esta semana";
-    if (weekOffset === -1) return "Semana pasada";
-    const monday = weekDays[0];
-    const sunday = weekDays[6];
-    const fmt = (str: string) => {
-      const d = new Date(str + "T00:00:00");
-      return d.toLocaleDateString("es", { day: "numeric", month: "short" });
-    };
-    return `${fmt(monday.dateStr)} – ${fmt(sunday.dateStr)}`;
-  }, [weekOffset, weekDays]);
+  const formatDay = (str: string) =>
+    new Date(str + "T00:00:00").toLocaleDateString("es", { weekday: "long", day: "numeric", month: "long" });
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-[var(--fg)]">Actividad lectora</span>
-          {streak > 0 && (
-            <span className="flex items-center gap-1 text-xs text-[var(--accent)] font-medium">
-              <Flame size={13} />
-              {streak} {streak === 1 ? "día" : "días"}
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => setWeekOffset((w) => w - 1)}
-            className="p-1.5 rounded-lg text-[var(--muted)] hover:text-[var(--fg)] hover:bg-[var(--surface)] transition-colors"
-            aria-label="Semana anterior"
-          >
-            <ChevronLeft size={16} />
-          </button>
-          <span className="text-xs text-[var(--muted)] w-28 text-center">{weekLabel}</span>
-          <button
-            onClick={() => setWeekOffset((w) => Math.min(0, w + 1))}
-            disabled={weekOffset === 0}
-            className="p-1.5 rounded-lg text-[var(--muted)] hover:text-[var(--fg)] hover:bg-[var(--surface)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-            aria-label="Semana siguiente"
-          >
-            <ChevronRight size={16} />
-          </button>
+    <div className="flex flex-col gap-5">
+      <div className="flex items-end justify-between gap-4 flex-wrap">
+        <span className="text-sm font-medium text-[var(--fg)]">Actividad lectora</span>
+        <div className="flex gap-6 md:gap-8">
+          <Stat
+            value={
+              <span className="flex items-center gap-1">
+                {streak}
+                {streak > 0 && <Flame size={16} className="text-[var(--accent)]" />}
+              </span>
+            }
+            label={streak === 1 ? "día de racha" : "días de racha"}
+          />
+          <Stat value={pagesThisMonth} label="páginas este mes" />
+          <Stat value={daysThisMonth} label={daysThisMonth === 1 ? "día este mes" : "días este mes"} />
         </div>
       </div>
 
-      <div className="grid grid-cols-7 gap-1.5">
-        {DAY_LABELS.map((label) => (
-          <div key={label} className="text-center text-[10px] text-[var(--muted)]">
-            {label}
+      <div className="flex gap-1 md:gap-[3px]">
+        <div className="flex flex-col gap-1 md:gap-[3px] pr-1">
+          <span className="h-4 text-[10px]" />
+          {DAY_LABELS.map((label, i) => (
+            <span key={i} className="flex-1 md:flex-none md:h-3.5 flex items-center text-[10px] text-[var(--muted)]">{label}</span>
+          ))}
+        </div>
+        {weeks.map(({ days, monthLabel }) => (
+          <div key={days[0].dateStr} className="flex flex-col gap-1 md:gap-[3px] flex-1 min-w-0">
+            <span className="h-4 text-[10px] md:text-[11px] text-[var(--muted)] capitalize whitespace-nowrap overflow-visible">{monthLabel}</span>
+              {days.map(({ dateStr, pages, isToday, isFuture }) => {
+                const selected = selectedDate === dateStr;
+                return (
+                  <button
+                    key={dateStr}
+                    type="button"
+                    disabled={isFuture || !onSelectDate}
+                    onClick={() => onSelectDate?.(selected ? null : dateStr)}
+                    title={`${formatDay(dateStr)} · ${pages > 0 ? `${pages} páginas` : "sin lectura"}`}
+                    aria-label={`${formatDay(dateStr)}: ${pages} páginas`}
+                    className={[
+                      "relative aspect-square md:aspect-auto md:h-3.5 w-full rounded-[4px] md:rounded-[3px] transition-transform enabled:hover:scale-125 disabled:cursor-default",
+                      isFuture ? "invisible" : "",
+                      selected || isToday ? "ring-1 ring-[var(--fg)] ring-offset-1 ring-offset-[var(--surface)]" : "",
+                    ].join(" ")}
+                  >
+                    <span className={`absolute inset-0 rounded-[inherit] bg-[var(--accent)] ${intensityClass(pages, maxPages)}`} />
+                  </button>
+                );
+              })}
           </div>
         ))}
+      </div>
 
-        {weekDays.map(({ dateStr, pages, isToday, isFuture }) => (
-          <div key={dateStr} className="flex flex-col items-center">
-            <div
-              title={pages > 0 ? `${pages} páginas leídas` : "Sin actividad"}
-              className={[
-                "w-full aspect-square rounded-md bg-[var(--accent)] transition-all",
-                isFuture ? "opacity-5" : intensityClass(pages, maxPages),
-                isToday ? "ring-1 ring-[var(--accent)] ring-offset-1 ring-offset-[var(--bg)]" : "",
-              ].join(" ")}
-            />
-          </div>
+      <div className="flex items-center justify-end gap-1.5 text-[11px] text-[var(--muted)]">
+        <span>Menos</span>
+        {["opacity-10", "opacity-30", "opacity-55", "opacity-75", "opacity-100"].map((o) => (
+          <span key={o} className={`h-2.5 w-2.5 rounded-[3px] bg-[var(--accent)] ${o}`} />
         ))}
+        <span>Más</span>
       </div>
     </div>
   );

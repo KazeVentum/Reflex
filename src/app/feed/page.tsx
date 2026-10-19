@@ -2,11 +2,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Feather, Search } from "lucide-react";
+import { Feather, Search, Users } from "lucide-react";
 import { Sidebar } from "@/components/Sidebar";
 import { BottomNav } from "@/components/BottomNav";
 import { useFeaturedProfiles } from "@/lib/hooks/useFeaturedProfiles";
 import { useProfileSearch } from "@/lib/hooks/useProfileSearch";
+import { useMyProfile } from "@/lib/hooks/useMyProfile";
 import type { Profile } from "@/types";
 
 function ProfileCard({ profile }: { profile: Profile }) {
@@ -29,12 +30,13 @@ export default function FeedPage() {
   const [query, setQuery] = useState("");
   const { profiles, loading } = useFeaturedProfiles();
   const { results, loading: searching } = useProfileSearch(query);
+  const { profile: me } = useMyProfile();
   const isSearching = query.trim().length > 0;
 
   return (
     <>
       <Sidebar />
-      <main className="min-h-screen flex flex-col px-5 pt-16 pb-36 max-w-md md:max-w-3xl mx-auto w-full md:pl-64 md:pb-16 md:pt-16 xl:max-w-5xl 2xl:max-w-7xl">
+      <main className="min-h-screen flex flex-col px-5 pt-20 pb-36 max-w-md md:max-w-3xl mx-auto w-full md:pl-64 md:pb-16 md:pt-16 xl:max-w-5xl 2xl:max-w-7xl">
         <motion.h1
           className="font-[family-name:var(--font-fraunces)] text-2xl md:text-3xl text-[var(--fg)] mb-6 md:mb-8"
           initial={{ opacity: 0, y: -10 }}
@@ -79,9 +81,23 @@ export default function FeedPage() {
           <>
             {loading && <p className="text-sm text-[var(--muted)] text-center py-12">Cargando...</p>}
             {!loading && profiles.length === 0 && (
-              <p className="text-sm text-[var(--muted)] text-center py-12">
-                Aún no hay autores destacados.
-              </p>
+              <div className="flex flex-col items-center text-center gap-4 py-16 px-6 rounded-2xl border border-dashed border-[var(--border)]">
+                <Users size={32} strokeWidth={1.5} className="text-[var(--accent)]" />
+                <div>
+                  <p className="font-[family-name:var(--font-fraunces)] text-lg text-[var(--fg)]">Aún no hay autores destacados</p>
+                  <p className="text-sm text-[var(--muted)] mt-1 max-w-sm">
+                    Mientras tanto, busca a alguien por su nombre o comparte tus propias reflexiones marcándolas como públicas.
+                  </p>
+                </div>
+                {me && (
+                  <Link
+                    href={`/feed/${me.id}`}
+                    className="px-5 py-3 text-sm font-medium text-[var(--bg)] bg-[var(--accent)] rounded-xl hover:opacity-85 transition-opacity"
+                  >
+                    Ver mi perfil público
+                  </Link>
+                )}
+              </div>
             )}
             {!loading && profiles.length > 0 && (
               <div className="flex flex-col gap-3 md:grid md:grid-cols-2 xl:grid-cols-3">

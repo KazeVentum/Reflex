@@ -23,9 +23,13 @@ export interface ReadingLog {
   user_id: string;
   book_id: string;
   pages_read: number;
+  start_page: number | null;
+  end_page: number | null;
   logged_at: string;
   created_at: string;
 }
+
+export type ReadingEntry = ReadingLog & { books: Pick<Book, "id" | "title" | "total_pages"> | null };
 
 export interface DailyActivity {
   date: string;
@@ -38,7 +42,7 @@ export interface Reflection {
   title: string | null;
   book_id: string | null;
   page_number: number | null;
-  audio_path: string;
+  audio_path: string | null;
   duration_seconds: number | null;
   tags: string[];
   notes: string | null;

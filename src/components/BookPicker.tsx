@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { Plus } from "lucide-react";
 import { useBooks } from "@/lib/hooks/useBooks";
 
 interface Props {
@@ -29,7 +30,7 @@ export function BookPicker({ value, onChange }: Props) {
         <select
           value={value ?? ""}
           onChange={(e) => onChange(e.target.value || null)}
-          className="flex-1 px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--bg)] text-[var(--fg)] focus:outline-none focus:border-[var(--accent)]"
+          className="flex-1 min-w-0 px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--bg)] text-[var(--fg)] focus:outline-none focus:border-[var(--accent)]"
         >
           <option value="">— Sin libro —</option>
           {books.map((b) => (
@@ -41,13 +42,15 @@ export function BookPicker({ value, onChange }: Props) {
         <button
           type="button"
           onClick={() => setCreating((v) => !v)}
-          className={`px-3 py-2 border rounded-lg text-sm transition-colors ${
+          aria-label="Crear libro nuevo"
+          title="Crear libro nuevo"
+          className={`shrink-0 px-3 py-2 border rounded-lg text-sm transition-colors ${
             creating
               ? "border-[var(--accent)] text-[var(--fg)]"
               : "border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)]"
           }`}
         >
-          +
+          <Plus size={16} />
         </button>
       </div>
 
@@ -60,7 +63,7 @@ export function BookPicker({ value, onChange }: Props) {
             onChange={(e) => setNewTitle(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAdd(); } }}
             autoFocus
-            className="flex-1 px-3 py-2 border border-[var(--border)] rounded-lg bg-transparent text-sm text-[var(--fg)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--accent)]"
+            className="flex-1 min-w-0 px-3 py-2 border border-[var(--border)] rounded-lg bg-transparent text-sm text-[var(--fg)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--accent)]"
           />
           <button
             type="button"

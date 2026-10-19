@@ -1,5 +1,5 @@
 "use client";
-import { Mic } from "lucide-react";
+import { Mic, PenLine } from "lucide-react";
 import type { FeedReflection, FeedQuote } from "@/types";
 import { AudioPlayer } from "@/components/AudioPlayer";
 
@@ -32,13 +32,25 @@ export function FeedItemCard({ type, item }: Props) {
       {type === "reflection" ? (
         <>
           <div className="flex items-center gap-2 text-[var(--fg)]">
-            <Mic size={16} strokeWidth={1.8} className="text-[var(--accent)] shrink-0" />
+            {item.audio_path ? (
+              <Mic size={16} strokeWidth={1.8} className="text-[var(--accent)] shrink-0" />
+            ) : (
+              <PenLine size={16} strokeWidth={1.8} className="text-[var(--accent)] shrink-0" />
+            )}
             <p className="font-[family-name:var(--font-fraunces)] text-lg">
-              {item.title ?? "Reflexión de voz"}
+              {item.title ?? (item.audio_path ? "Reflexión de voz" : "Reflexión escrita")}
             </p>
           </div>
-          <AudioPlayer audioPath={item.audio_path} durationSeconds={item.duration_seconds} />
-          {item.notes && <p className="text-sm text-[var(--muted)] leading-relaxed">{item.notes}</p>}
+          {item.audio_path ? (
+            <>
+              <AudioPlayer audioPath={item.audio_path} durationSeconds={item.duration_seconds} />
+              {item.notes && <p className="text-sm text-[var(--muted)] leading-relaxed">{item.notes}</p>}
+            </>
+          ) : (
+            <p className="font-[family-name:var(--font-fraunces)] text-[var(--fg)] leading-relaxed whitespace-pre-line">
+              {item.notes}
+            </p>
+          )}
         </>
       ) : (
         <div>

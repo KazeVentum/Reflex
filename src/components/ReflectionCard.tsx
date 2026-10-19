@@ -1,15 +1,17 @@
 "use client";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Globe, PenLine } from "lucide-react";
 import type { Reflection } from "@/types";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { BookPicker } from "@/components/BookPicker";
 import { TagInput } from "@/components/TagInput";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { PublicToggle } from "@/components/PublicToggle";
 
 interface Props {
   reflection: Reflection;
-  onDelete: (id: string, audioPath: string) => void;
+  onDelete: (id: string, audioPath: string | null) => void;
   onUpdate: (id: string, updates: Partial<Pick<Reflection, "title" | "book_id" | "page_number" | "tags" | "notes" | "is_public">>) => Promise<boolean>;
 }
 
@@ -39,6 +41,7 @@ export function ReflectionCard({ reflection, onDelete, onUpdate }: Props) {
   const [isPublic, setIsPublic] = useState(reflection.is_public);
   const [saving, setSaving] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const isWritten = !reflection.audio_path;
 
   const handleDelete = () => {
     onDelete(reflection.id, reflection.audio_path);
@@ -47,6 +50,7 @@ export function ReflectionCard({ reflection, onDelete, onUpdate }: Props) {
 
   const handleSave = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isWritten && !notes.trim()) return;
     setSaving(true);
     const ok = await onUpdate(reflection.id, {
       title: title.trim() || null,
@@ -81,7 +85,14 @@ export function ReflectionCard({ reflection, onDelete, onUpdate }: Props) {
       {/* Header — siempre visible */}
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-2 text-xs text-[var(--muted)]">
+          {isWritten && <PenLine size={12} strokeWidth={1.8} className="text-[var(--accent)]" />}
           <span>{formatDate(reflection.created_at)}</span>
+          {reflection.is_public && (
+            <span className="flex items-center gap-1 text-[var(--accent)]">
+              <Globe size={11} strokeWidth={1.8} />
+              Pública
+            </span>
+          )}
           {reflection.duration_seconds && (
             <span className="tabular-nums">{formatDuration(reflection.duration_seconds)}</span>
           )}
@@ -94,6 +105,9 @@ export function ReflectionCard({ reflection, onDelete, onUpdate }: Props) {
         </p>
         {reflection.title && reflection.books?.title && (
           <p className="text-xs text-[var(--muted)] truncate">{reflection.books.title}</p>
+        )}
+        {isWritten && reflection.notes && !expanded && (
+          <p className="text-sm text-[var(--muted)] leading-relaxed line-clamp-3 mt-0.5">{reflection.notes}</p>
         )}
         {reflection.tags.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-0.5">
@@ -117,9 +131,17 @@ export function ReflectionCard({ reflection, onDelete, onUpdate }: Props) {
             transition={{ duration: 0.25, ease: "easeInOut" }}
             className="overflow-hidden"
           >
-            <AudioPlayer audioPath={reflection.audio_path} durationSeconds={reflection.duration_seconds} />
-            {reflection.notes && (
-              <p className="text-sm text-[var(--muted)] mt-3 leading-relaxed">{reflection.notes}</p>
+            {reflection.audio_path ? (
+              <>
+                <AudioPlayer audioPath={reflection.audio_path} durationSeconds={reflection.duration_seconds} />
+                {reflection.notes && (
+                  <p className="text-sm text-[var(--muted)] mt-3 leading-relaxed">{reflection.notes}</p>
+                )}
+              </>
+            ) : (
+              <p className="font-[family-name:var(--font-fraunces)] text-[var(--fg)] mt-3 leading-relaxed whitespace-pre-line">
+                {reflection.notes}
+              </p>
             )}
             <div className="flex gap-2 mt-4">
               <button
@@ -177,46 +199,19 @@ export function ReflectionCard({ reflection, onDelete, onUpdate }: Props) {
                 <TagInput value={tags} onChange={setTags} />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-xs text-[var(--muted)]">Notas</label>
+                <label className="text-xs text-[var(--muted)]">{isWritten ? "Tu reflexión" : "Notas"}</label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  rows={3}
+                  rows={isWritten ? 8 : 3}
                   className={`${inputClass} resize-none`}
                 />
               </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="flex flex-col">
-                  <span className="text-sm text-[var(--fg)]">Hacer pública</span>
-                  <span className="text-xs text-[var(--muted)]">
-                    Visible en el feed si estás destacado
-                  </span>
-                </span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={isPublic}
-                  aria-label="Hacer pública"
-                  onClick={(e) => { e.stopPropagation(); setIsPublic((v) => !v); }}
-                  className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors ${
-                    isPublic
-                      ? "bg-[var(--accent)] border-[var(--accent)]"
-                      : "bg-[var(--surface)] border-[var(--border)] hover:border-[var(--accent)]"
-                  }`}
-                >
-                  <span
-                    className="absolute top-1 left-1 h-4 w-4 rounded-full transition-transform"
-                    style={{
-                      transform: isPublic ? "translateX(20px)" : "none",
-                      backgroundColor: isPublic ? "var(--bg)" : "var(--muted)",
-                    }}
-                  />
-                </button>
-              </div>
+              <PublicToggle value={isPublic} onChange={setIsPublic} />
               <div className="flex gap-2">
                 <button
                   onClick={handleSave}
-                  disabled={saving}
+                  disabled={saving || (isWritten && !notes.trim())}
                   className="flex-1 py-3 text-sm bg-[var(--fg)] text-[var(--bg)] rounded-xl hover:opacity-80 disabled:opacity-50 transition-opacity"
                 >
                   {saving ? "Guardando..." : "Guardar"}

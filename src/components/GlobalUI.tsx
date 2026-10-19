@@ -52,7 +52,9 @@ export function GlobalUI() {
   if (!mounted) return null;
 
   return (
-    <div className="fixed top-5 right-5 z-50 flex items-center gap-2">
+    // En mobile scrollea con la página (absolute) para no tapar el contenido;
+    // en desktop queda flotando fijo.
+    <div className="absolute md:fixed top-5 right-5 z-50 flex items-center gap-2">
       {!isLogin && <SettingsMenu />}
       {!isLogin && (
         <button

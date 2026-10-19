@@ -6,7 +6,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 # Reflex
 
-A personal reading/reflection journaling PWA. Users record voice reflections while reading, save text quotes, and track reading progress per book. Responsive: mobile-first pill nav + bottom sheets, with a real desktop layout (fixed sidebar, wider content, masonry card grids) at `md:` and up.
+A personal reading/reflection journaling PWA. Users record voice reflections (or write them) while reading, save text quotes, and track reading progress per book with a page-by-page history. Responsive: mobile-first pill nav + bottom sheets, with a real desktop layout (fixed sidebar, wider content, masonry card grids) at `md:` and up.
 
 ## Stack
 
@@ -14,12 +14,14 @@ Next.js 16.2.6 (App Router, Turbopack) · React 19.2.4 · TypeScript · Tailwind
 
 ## Structure
 
-- `src/app/` — routes: `/` (home: greeting, quote, record button, books-in-progress), `/library` (reflections/quotes tabs with book/tag filters), `/books` (book CRUD + reading-activity heatmap), `/login`, `/auth/callback`.
+- `src/app/` — routes: `/` (home: greeting, quote, record button + "write instead", books-in-progress; `?escribir=<bookId>` opens a written reflection for that book), `/library` (reflections/quotes tabs with book/tag filters), `/books` (book CRUD, *Leyendo*/*Terminados*, multi-month heatmap + reading history), `/feed`, `/feed/[authorId]`, `/admin/users`, `/login`, `/auth/callback`.
 - `src/lib/hooks/` — one SWR-backed hook per domain (`useBooks`, `useReflections`, `useQuotes`, `useReadingLogs`, `useTags`, `useRecorder`, `useIsDesktop`). Each hook owns its own Supabase calls and does optimistic `mutate()` — there's no separate API/service layer.
 - `src/lib/supabase/{client,server}.ts` — separate browser/server Supabase clients (`@supabase/ssr`).
 - `src/middleware.ts` — redirects unauthenticated users to `/login`; `/login` and `/auth/*` are the only public paths. Note: Next.js prints a deprecation warning for `middleware.ts` in this version in favor of `proxy.ts` — not yet migrated.
-- `src/components/` — presentational + form components. Notable ones: `Sidebar` (desktop nav, `hidden md:flex`) / `BottomNav` (mobile nav, `md:hidden`); `ConfirmDialog` (use for *every* destructive action instead of `window.confirm`); `PageUpdateSheet` / `QuoteEditSheet` (bottom sheet on mobile, centered modal on desktop via `useIsDesktop()`); `GlobalUI` (floating top-right cluster: logout + theme toggle) and `SettingsMenu` (the gear in that cluster — app config popover, currently just the "Rosa" palette toggle).
+- `src/components/` — presentational + form components. Notable ones: `Sidebar` (desktop nav, `hidden md:flex`) / `BottomNav` (mobile nav, `md:hidden`); `ConfirmDialog` (use for *every* destructive action instead of `window.confirm`); `PageUpdateSheet` / `QuoteEditSheet` (bottom sheet on mobile, centered modal on desktop via `useIsDesktop()`); `GlobalUI` (top-right cluster: logout + theme toggle — `fixed` on desktop, `absolute` on mobile so it scrolls away instead of covering content; pages need `pt-20` on mobile to clear it) and `SettingsMenu` (the gear in that cluster — app config popover, currently just the "Rosa" palette toggle).
 - `src/types/index.ts` — single flat file with all shared interfaces.
+- `src/lib/date.ts` — `toLocalDateStr()`. Reading-log dates must be the user's **local** date, never `toISOString()` (UTC shifts evening reads to the next day).
+- Reflections may have no audio (`audio_path` null = written reflection, text in `notes`) — anything touching `audio_path` must handle null. Reading progress is logged via the `log_reading()` RPC (start/end page, uses `auth.uid()`); `upsert_reading_log` is deprecated and kept only for older deployed clients.
 - `supabase/` — `schema.sql` (full schema) + incremental `migration_*.sql` files applied by hand in the Supabase SQL editor (no migration tool). `supabase/README.md` documents the current schema in Spanish and must stay in sync when adding migrations.
 
 ## Conventions

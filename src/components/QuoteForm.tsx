@@ -3,6 +3,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BookPicker } from "@/components/BookPicker";
 import { TagInput } from "@/components/TagInput";
+import { PublicToggle } from "@/components/PublicToggle";
 import { Plus, ChevronDown, ChevronUp } from "lucide-react";
 
 interface Props {
@@ -11,7 +12,8 @@ interface Props {
     pageNumber: number | null,
     quoteText: string,
     notes: string | null,
-    tags: string[]
+    tags: string[],
+    isPublic: boolean
   ) => Promise<boolean>;
 }
 
@@ -22,6 +24,7 @@ export function QuoteForm({ onSave }: Props) {
   const [quoteText, setQuoteText] = useState("");
   const [notes, setNotes] = useState("");
   const [tags, setTags] = useState<string[]>([]);
+  const [isPublic, setIsPublic] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,7 +43,8 @@ export function QuoteForm({ onSave }: Props) {
         pageNumber ? parseInt(pageNumber, 10) : null,
         quoteText.trim(),
         notes.trim() || null,
-        tags
+        tags,
+        isPublic
       );
 
       if (success) {
@@ -50,6 +54,7 @@ export function QuoteForm({ onSave }: Props) {
         setPageNumber("");
         setTags([]);
         setBookId(null);
+        setIsPublic(false);
         setIsOpen(false);
       } else {
         setError("Ocurrió un error al guardar la cita.");
@@ -127,6 +132,8 @@ export function QuoteForm({ onSave }: Props) {
                   className={`${inputClass} resize-none`}
                 />
               </div>
+
+              <PublicToggle value={isPublic} onChange={setIsPublic} />
 
               {error && <p className="text-xs text-[var(--danger)]">{error}</p>}
 

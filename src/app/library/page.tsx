@@ -1,12 +1,15 @@
 "use client";
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import { Mic, PenLine } from "lucide-react";
 import { useReflections } from "@/lib/hooks/useReflections";
 import { useBooks } from "@/lib/hooks/useBooks";
 import { useQuotes } from "@/lib/hooks/useQuotes";
 import { ReflectionCard } from "@/components/ReflectionCard";
 import { QuoteCard } from "@/components/QuoteCard";
 import { QuoteForm } from "@/components/QuoteForm";
+import { ReflectionForm } from "@/components/ReflectionForm";
 import { QuoteEditSheet } from "@/components/QuoteEditSheet";
 import { BottomNav } from "@/components/BottomNav";
 import { Sidebar } from "@/components/Sidebar";
@@ -17,8 +20,9 @@ export default function LibraryPage() {
   const [selectedBookId, setSelectedBookId] = useState<string | undefined>();
   const [selectedTag, setSelectedTag] = useState<string | undefined>();
   const [editingQuote, setEditingQuote] = useState<Quote | null>(null);
+  const [writing, setWriting] = useState(false);
 
-  const { reflections, loading: loadingReflections, deleteReflection, updateReflection } = useReflections({
+  const { reflections, loading: loadingReflections, deleteReflection, updateReflection, refetch: refetchReflections } = useReflections({
     bookId: selectedBookId,
     tag: selectedTag,
   });
@@ -46,7 +50,7 @@ export default function LibraryPage() {
   return (
     <>
     <Sidebar />
-    <main className="min-h-screen flex flex-col px-5 pt-10 pb-36 max-w-md md:max-w-3xl mx-auto w-full md:pl-64 md:pb-16 md:pt-16 xl:max-w-5xl 2xl:max-w-7xl">
+    <main className="min-h-screen flex flex-col px-5 pt-20 pb-36 max-w-md md:max-w-3xl mx-auto w-full md:pl-64 md:pb-16 md:pt-16 xl:max-w-5xl 2xl:max-w-7xl">
       <motion.h1
         className="font-[family-name:var(--font-fraunces)] text-2xl md:text-3xl text-[var(--fg)] mb-6 md:mb-8"
         initial={{ opacity: 0, y: -10 }}
@@ -83,6 +87,7 @@ export default function LibraryPage() {
             onClick={() => {
               setActiveTab("quotes");
               setSelectedTag(undefined);
+              setWriting(false);
             }}
             className={`flex-1 py-2.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
               activeTab === "quotes"
@@ -148,18 +153,45 @@ export default function LibraryPage() {
         >
           {activeTab === "quotes" && <QuoteForm onSave={addQuote} />}
 
+          {activeTab === "reflections" && writing && (
+            <ReflectionForm
+              onSaved={() => { setWriting(false); refetchReflections(); }}
+              onCancel={() => setWriting(false)}
+            />
+          )}
+
+          {activeTab === "reflections" && !writing && (
+            <div className="flex gap-3 mb-3">
+              <Link
+                href="/"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] text-sm font-medium text-[var(--fg)] hover:border-[var(--accent)] transition-colors"
+              >
+                <Mic size={17} strokeWidth={1.8} className="text-[var(--accent)]" />
+                Grabar
+              </Link>
+              <button
+                onClick={() => setWriting(true)}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] text-sm font-medium text-[var(--fg)] hover:border-[var(--accent)] transition-colors"
+              >
+                <PenLine size={17} strokeWidth={1.8} className="text-[var(--accent)]" />
+                Escribir
+              </button>
+            </div>
+          )}
+
           {loading && (
             <p className="text-sm text-[var(--muted)] text-center py-12">Cargando...</p>
           )}
 
-          {!loading && itemsCount === 0 && (
+          {!loading && itemsCount === 0 && !writing && (
             <p className="text-sm text-[var(--muted)] text-center py-12 leading-relaxed">
               {activeTab === "reflections"
-                ? "Aún no hay reflexiones. Mantén presionado el grabador y comparte tu primer pensamiento."
-                : "Aún no agregaste citas textuales. Despliega el formulario superior e ingresa tu primera cita."}
+                ? "Aún no hay reflexiones. Graba o escribe tu primer pensamiento."
+                : "Aún no tienes citas guardadas. Agrega la primera con el botón de arriba."}
             </p>
           )}
 
+          {!writing && (
           <div className="flex flex-col gap-3.5 md:block md:columns-2 md:gap-4 xl:columns-3 2xl:columns-4">
             {!loading && activeTab === "reflections" && reflections.map((r) => (
               <div key={r.id} className="md:mb-4 md:break-inside-avoid">
@@ -173,6 +205,7 @@ export default function LibraryPage() {
               </div>
             ))}
           </div>
+          )}
         </motion.div>
       </AnimatePresence>
 

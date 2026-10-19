@@ -93,7 +93,8 @@ export function useQuotes(filters: Filters = {}) {
     pageNumber: number | null,
     quoteText: string,
     notes: string | null,
-    tags: string[]
+    tags: string[],
+    isPublic = false
   ): Promise<boolean> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return false;
@@ -105,6 +106,7 @@ export function useQuotes(filters: Filters = {}) {
       quote_text: quoteText,
       notes: notes,
       tags: tags,
+      is_public: isPublic,
     };
 
     const { data, error } = await supabase

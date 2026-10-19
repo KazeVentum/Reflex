@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Pencil, Trash2 } from "lucide-react";
+import { Globe, Pencil, Trash2 } from "lucide-react";
 import type { Quote } from "@/types";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 
@@ -63,6 +63,12 @@ export function QuoteCard({ quote, onDelete, onEdit }: Props) {
           </div>
           <div className="flex flex-col items-end gap-0.5 flex-shrink-0 text-right">
             <span className="whitespace-nowrap">{formatDate(quote.created_at)}</span>
+            {quote.is_public && (
+              <span className="flex items-center gap-1 text-[var(--accent)] whitespace-nowrap">
+                <Globe size={11} strokeWidth={1.8} />
+                Pública
+              </span>
+            )}
             {quote.page_number && (
               <span className="text-[var(--accent)] font-medium whitespace-nowrap">p. {quote.page_number}</span>
             )}

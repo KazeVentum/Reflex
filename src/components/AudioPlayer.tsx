@@ -10,12 +10,16 @@ function formatTime(s: number): string {
 }
 
 interface Props {
-  audioPath: string;
+  // audioPath = archivo en Storage; src = URL directa (ej. blob de una
+  // grabación que aún no se guardó, para escucharla antes).
+  audioPath?: string;
+  src?: string;
   durationSeconds?: number | null;
 }
 
-export function AudioPlayer({ audioPath, durationSeconds }: Props) {
-  const [url, setUrl] = useState<string | null>(null);
+export function AudioPlayer({ audioPath, src, durationSeconds }: Props) {
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const url = src ?? signedUrl;
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(durationSeconds ?? 0);
@@ -23,13 +27,14 @@ export function AudioPlayer({ audioPath, durationSeconds }: Props) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
+    if (!audioPath) return;
     const supabase = createClient();
     supabase.storage
       .from("reflections")
       .createSignedUrl(audioPath, 3600)
       .then(({ data, error }) => {
         if (error || !data) { setError(true); return; }
-        setUrl(data.signedUrl);
+        setSignedUrl(data.signedUrl);
       });
   }, [audioPath]);
 

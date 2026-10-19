@@ -27,7 +27,7 @@ export function BookProgressBar({ current, total, className = "" }: BookProgress
         />
       </div>
       <span className="text-xs text-[var(--muted)]">
-        pág. {current} de {total} · {pct}%
+        {current >= total ? `Terminado · ${total} páginas` : `pág. ${current} de ${total} · ${pct}%`}
       </span>
     </div>
   );

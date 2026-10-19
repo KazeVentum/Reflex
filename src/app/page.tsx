@@ -1,7 +1,8 @@
 "use client";
-import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { PenLine } from "lucide-react";
 import { useRecorder } from "@/lib/hooks/useRecorder";
 import { useBooks } from "@/lib/hooks/useBooks";
 import { useQuotes } from "@/lib/hooks/useQuotes";
@@ -55,7 +56,8 @@ function getDayIndex(len: number): number {
 
 function BooksInProgress({ onOpenSheet }: { onOpenSheet: (book: Book) => void }) {
   const { books } = useBooks();
-  const tracked = books.filter((b) => b.total_pages !== null);
+  // Terminado = current_page alcanzó total_pages; esos ya no están "en progreso".
+  const tracked = books.filter((b) => b.total_pages !== null && b.current_page < b.total_pages);
 
   if (tracked.length === 0) return null;
 
@@ -90,13 +92,18 @@ function BooksInProgress({ onOpenSheet }: { onOpenSheet: (book: Book) => void })
   );
 }
 
-export default function Home() {
+function Home() {
   const { state, audioBlob, duration, elapsed, start, stop, reset } = useRecorder();
   const { updateCurrentPage } = useBooks();
   const router = useRouter();
   const { quotes } = useQuotes();
   const { profile } = useMyProfile();
   const [sheetBook, setSheetBook] = useState<Book | null>(null);
+  // ?escribir=<bookId> abre directo una reflexión escrita sobre ese libro
+  // (lo usa "Escribir una reseña" al terminar un libro desde /books).
+  const searchParams = useSearchParams();
+  const [writeBookId, setWriteBookId] = useState<string | null>(() => searchParams.get("escribir"));
+  const [writing, setWriting] = useState(() => searchParams.has("escribir"));
 
   const combinedQuotes = useMemo(() => {
     const userQuotes = quotes.map((q) => ({
@@ -113,20 +120,33 @@ export default function Home() {
 
   const handleSaved = () => {
     reset();
+    setWriting(false);
+    setWriteBookId(null);
     router.push("/library");
   };
 
-  if (state === "done" && audioBlob) {
+  if ((state === "done" && audioBlob) || writing) {
     return (
       <>
         <Sidebar />
         <motion.main
-          className="min-h-screen flex flex-col px-5 pt-16 pb-36 max-w-md md:max-w-2xl mx-auto w-full md:pl-64 md:pb-16 md:pt-20"
+          className="min-h-screen flex flex-col px-5 pt-16 pb-36 max-w-md md:max-w-4xl mx-auto w-full md:pl-64 md:pb-16 md:pt-20 lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3 }}
         >
-          <ReflectionForm audioBlob={audioBlob} duration={duration} onSaved={handleSaved} onCancel={reset} />
+          <ReflectionForm
+            audioBlob={writing ? undefined : audioBlob ?? undefined}
+            duration={duration}
+            initialBookId={writing ? writeBookId : null}
+            onSaved={handleSaved}
+            onCancel={() => {
+              reset();
+              setWriting(false);
+              setWriteBookId(null);
+              if (searchParams.has("escribir")) router.replace("/");
+            }}
+          />
           <BottomNav />
         </motion.main>
       </>
@@ -206,6 +226,15 @@ export default function Home() {
                   : "Toca para capturar un pensamiento"}
               </motion.p>
             </AnimatePresence>
+            {state !== "recording" && (
+              <button
+                onClick={() => setWriting(true)}
+                className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-[var(--muted)] border border-[var(--border)] rounded-full hover:text-[var(--fg)] hover:border-[var(--accent)] transition-colors"
+              >
+                <PenLine size={14} strokeWidth={1.8} />
+                O escribe tu reflexión
+              </button>
+            )}
           </motion.div>
         </div>
 
@@ -219,10 +248,24 @@ export default function Home() {
         book={sheetBook}
         onClose={() => setSheetBook(null)}
         onUpdate={updateCurrentPage}
+        onWriteReview={(book) => {
+          setSheetBook(null);
+          setWriteBookId(book.id);
+          setWriting(true);
+        }}
       />
 
       <BottomNav />
     </main>
     </>
+  );
+}
+
+// useSearchParams necesita un Suspense para que el build de producción no falle.
+export default function HomePage() {
+  return (
+    <Suspense>
+      <Home />
+    </Suspense>
   );
 }

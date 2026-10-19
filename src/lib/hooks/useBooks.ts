@@ -1,6 +1,8 @@
 "use client";
-import useSWR from "swr";
+import useSWR, { mutate as globalMutate } from "swr";
 import { createClient } from "@/lib/supabase/client";
+import { toLocalDateStr } from "@/lib/date";
+import { READING_LOGS_KEY } from "@/lib/hooks/useReadingLogs";
 import type { Book } from "@/types";
 
 const supabase = createClient();
@@ -75,18 +77,15 @@ export function useBooks() {
       false
     );
 
-    const delta = newPage - previousPage;
-    if (delta > 0) {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const today = new Date().toISOString().split("T")[0];
-        await supabase.rpc("upsert_reading_log", {
-          p_user_id: user.id,
-          p_book_id: id,
-          p_pages_read: delta,
-          p_logged_at: today,
-        });
-      }
+    // Si baja (corrección), log_reading ajusta el registro de hoy.
+    if (newPage !== previousPage) {
+      await supabase.rpc("log_reading", {
+        p_book_id: id,
+        p_start_page: previousPage,
+        p_end_page: newPage,
+        p_logged_at: toLocalDateStr(new Date()),
+      });
+      globalMutate(READING_LOGS_KEY);
     }
 
     return true;

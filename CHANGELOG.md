@@ -2,6 +2,22 @@
 
 Resumen breve de cambios y problemas resueltos en este proyecto (sesión de trabajo con Claude).
 
+## 2026-10-19
+
+- **Bug: un libro terminado seguía en "En progreso"** (Blackwater, 250/250). El inicio mostraba todos los libros con total de páginas. Fix: solo los no terminados; en `/books` se separan en *Leyendo* y *Terminados*.
+- **Publicar sin pasar por "Editar"**: el interruptor "Hacer pública" ahora está también al crear reflexiones y citas (componente compartido `PublicToggle`), y las tarjetas muestran una etiqueta "Pública". El texto del interruptor decía "si estás destacado", que ya no aplicaba.
+- **Reflexiones escritas**: además de grabar, puedes escribir una reflexión o reseña vinculada a un libro (desde el inicio o la biblioteca). `reflections.audio_path` pasa a ser opcional, con un `CHECK` que exige audio o texto.
+- **"Agregar libro" opcional**: el formulario ya no aparece siempre en `/books`; se abre con un botón, y si no hay libros se muestra un estado vacío.
+- **Historial de lectura**: cada día guarda de qué página a cuál leíste (*pág. 187 → 230*); `reading_logs.start_page`/`end_page` y la función nueva `log_reading()`. Si corriges una página a la baja, el registro del día se recorta en vez de dejar páginas fantasma.
+- **Mapa de actividad rediseñado**: de una semana a 6 meses tipo GitHub (4 en móvil, con celdas más grandes), con racha, páginas y días del mes. Si tocas un día, el historial se filtra.
+- **Libro terminado**: al guardar la última página aparece una celebración con el atajo "Escribir una reseña".
+- **Vista previa del audio** antes de guardar una grabación; "Descartar" pide confirmación.
+- **Bug de seguridad**: `upsert_reading_log` (`SECURITY DEFINER`) confiaba en un `p_user_id` enviado por el cliente, así que cualquiera podía escribir registros de lectura de otro. Fix: usa `auth.uid()` y verifica que el libro sea del usuario. Se mantiene solo por compatibilidad; borrarla tras el próximo deploy.
+- **Bug: lecturas de la noche quedaban en el día siguiente.** La fecha se calculaba en UTC (`toISOString`); en Colombia (UTC-5), todo lo registrado después de las 7 p. m. caía en mañana. Fix: fecha local (`src/lib/date.ts`).
+- **UX general**: el formulario de reflexión ahora es más ancho y alineado con el resto de páginas; se corrigió el botón "+" de libro que se salía de la columna; el Feed vacío ahora explica qué hacer; la biblioteca tiene botones para grabar o escribir.
+- **Bug mobile: los botones flotantes (configuración, salir, tema) tapaban "Agregar libro"** y, al hacer scroll, el contenido. Fix: más espacio arriba en las páginas que lo necesitaban, y en móvil esos botones ahora se van con el scroll.
+- README reescrito con funcionalidades, capturas actuales (`docs/screenshots/`) y guía de desarrollo.
+
 ## 2026-10-03
 
 - **Bug mobile: el botón de grabar quedaba empujado muy abajo** cuando había varios libros "en progreso" (dependía del alto de esa columna). Fix: el botón ahora vive en la columna izquierda, cuyo alto es predecible.

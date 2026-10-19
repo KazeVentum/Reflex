@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { Quote } from "@/types";
 import { BookPicker } from "@/components/BookPicker";
 import { TagInput } from "@/components/TagInput";
+import { PublicToggle } from "@/components/PublicToggle";
 import { useIsDesktop } from "@/lib/hooks/useIsDesktop";
 
 interface QuoteEditSheetProps {
@@ -182,34 +183,7 @@ export function QuoteEditSheet({ quote, onClose, onSave }: QuoteEditSheetProps) 
                 </div>
 
                 {/* Hacer pública */}
-                <div className="flex items-center justify-between gap-3">
-                  <span className="flex flex-col">
-                    <span className="text-sm text-[var(--fg)]">Hacer pública</span>
-                    <span className="text-xs text-[var(--muted)]">
-                      Visible en el feed si estás destacado
-                    </span>
-                  </span>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={isPublic}
-                    aria-label="Hacer pública"
-                    onClick={() => setIsPublic((v) => !v)}
-                    className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors ${
-                      isPublic
-                        ? "bg-[var(--accent)] border-[var(--accent)]"
-                        : "bg-[var(--surface)] border-[var(--border)] hover:border-[var(--accent)]"
-                    }`}
-                  >
-                    <span
-                      className="absolute top-1 left-1 h-4 w-4 rounded-full transition-transform"
-                      style={{
-                        transform: isPublic ? "translateX(20px)" : "none",
-                        backgroundColor: isPublic ? "var(--bg)" : "var(--muted)",
-                      }}
-                    />
-                  </button>
-                </div>
+                <PublicToggle value={isPublic} onChange={setIsPublic} />
 
                 {/* Botones */}
                 <div className="flex gap-3 mt-2">

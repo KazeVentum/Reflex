@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Minus, Plus } from "lucide-react";
+import { Minus, PartyPopper, PenLine, Plus } from "lucide-react";
 import type { Book } from "@/types";
 import { useIsDesktop } from "@/lib/hooks/useIsDesktop";
 
@@ -9,17 +9,23 @@ interface PageUpdateSheetProps {
   book: Book | null;
   onClose: () => void;
   onUpdate: (bookId: string, newPage: number, previousPage: number) => Promise<boolean>;
+  // Se ofrece al terminar el libro: abre una reflexión escrita sobre él.
+  onWriteReview?: (book: Book) => void;
 }
 
-export function PageUpdateSheet({ book, onClose, onUpdate }: PageUpdateSheetProps) {
+export function PageUpdateSheet({ book, onClose, onUpdate, onWriteReview }: PageUpdateSheetProps) {
   const [value, setValue] = useState("");
   const [saving, setSaving] = useState(false);
+  const [finished, setFinished] = useState(false);
   const [kbOffset, setKbOffset] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const isDesktop = useIsDesktop();
 
   useEffect(() => {
-    if (book) setValue(book.current_page.toString());
+    if (book) {
+      setValue(book.current_page.toString());
+      setFinished(false);
+    }
   }, [book]);
 
   // Detecta teclado virtual con visualViewport (API correcta para mobile)
@@ -54,9 +60,11 @@ export function PageUpdateSheet({ book, onClose, onUpdate }: PageUpdateSheetProp
   const handleSave = async () => {
     if (!book) return;
     setSaving(true);
-    await onUpdate(book.id, parsed, book.current_page);
+    const ok = await onUpdate(book.id, parsed, book.current_page);
     setSaving(false);
-    onClose();
+    const justFinished = ok && book.total_pages !== null && parsed >= book.total_pages && book.current_page < book.total_pages;
+    if (justFinished) setFinished(true);
+    else onClose();
   };
 
   return (
@@ -102,6 +110,46 @@ export function PageUpdateSheet({ book, onClose, onUpdate }: PageUpdateSheetProp
               {/* Handle — solo en mobile */}
               {!isDesktop && <div className="w-10 h-1 rounded-full bg-[var(--border)] mx-auto mb-6" />}
 
+              {finished ? (
+                <motion.div
+                  className="flex flex-col items-center text-center py-4"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ type: "spring", stiffness: 260, damping: 20 }}
+                >
+                  <motion.div
+                    className="h-16 w-16 rounded-full bg-[var(--accent)]/15 flex items-center justify-center mb-5"
+                    initial={{ rotate: -20 }}
+                    animate={{ rotate: [-20, 12, -6, 0] }}
+                    transition={{ duration: 0.7, delay: 0.1 }}
+                  >
+                    <PartyPopper size={30} strokeWidth={1.6} className="text-[var(--accent)]" />
+                  </motion.div>
+                  <p className="text-[10px] uppercase tracking-widest text-[var(--accent)] mb-1">Libro terminado</p>
+                  <p className="font-[family-name:var(--font-fraunces)] text-2xl text-[var(--fg)] mb-1">
+                    ¡Terminaste {book.title}!
+                  </p>
+                  <p className="text-sm text-[var(--muted)] mb-8">
+                    {book.total_pages} páginas. ¿Qué te dejó esta lectura?
+                  </p>
+                  {onWriteReview && (
+                    <button
+                      onClick={() => onWriteReview(book)}
+                      className="w-full flex items-center justify-center gap-2 py-4 mb-3 bg-[var(--accent)] text-[var(--bg)] rounded-2xl text-base font-medium hover:opacity-85 transition-opacity"
+                    >
+                      <PenLine size={18} />
+                      Escribir una reseña
+                    </button>
+                  )}
+                  <button
+                    onClick={onClose}
+                    className="w-full py-4 border border-[var(--border)] text-[var(--muted)] rounded-2xl text-base hover:text-[var(--fg)] hover:border-[var(--accent)] transition-colors"
+                  >
+                    Ahora no
+                  </button>
+                </motion.div>
+              ) : (
+              <>
               {/* Header */}
               <p className="text-[10px] uppercase tracking-widest text-[var(--muted)] mb-1">
                 Actualizando
@@ -171,6 +219,8 @@ export function PageUpdateSheet({ book, onClose, onUpdate }: PageUpdateSheetProp
               >
                 {saving ? "Guardando..." : "Guardar"}
               </motion.button>
+              </>
+              )}
             </div>
             </motion.div>
           </div>

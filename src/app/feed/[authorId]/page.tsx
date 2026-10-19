@@ -66,7 +66,7 @@ export default function AuthorFeedPage() {
   return (
     <>
       <Sidebar />
-      <main className="min-h-screen flex flex-col px-5 pt-16 pb-36 max-w-md md:max-w-3xl mx-auto w-full md:pl-64 md:pb-16 md:pt-16 xl:max-w-5xl 2xl:max-w-7xl">
+      <main className="min-h-screen flex flex-col px-5 pt-20 pb-36 max-w-md md:max-w-3xl mx-auto w-full md:pl-64 md:pb-16 md:pt-16 xl:max-w-5xl 2xl:max-w-7xl">
         {loading && <p className="text-sm text-[var(--muted)] text-center py-12">Cargando...</p>}
 
         {!loading && !profile && (
